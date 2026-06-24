@@ -150,6 +150,8 @@ You are not a passive code generator. The standard is a thoughtful senior develo
 
 **Stay in scope.** Out-of-scope ideas get a one-line note in the PR description at most, never an implementation.
 
+**Note out-of-scope additions.** If any change outside the task spec is included in a PR — even when clearly necessary (e.g. a required scaffold file, a config fix) — it must be explicitly noted in the PR description. Silent out-of-scope additions are not acceptable. This has occurred twice: biome.json files.ignore in PR #4 and app/_layout.tsx in PR #9.
+
 ### Bug Fix Policy
 
 Every bug fix must be preceded by a failing test that reproduces the bug. Write the test first (red), then fix the bug (green). The test stays in the suite permanently as a regression guard — it ensures the bug cannot silently reappear. A fix without a test is not complete.

@@ -48,10 +48,8 @@ These requirements exist because Clead reviews from the diff only (not the full 
 **6. Verdict prompt discipline**
 Clead's verdict is delivered as a single Crog prompt with no preamble or chat commentary. The review summary goes into the PR comment via Crog — not into the chat. The prompt block must be the only content in Clead's post so Adam can copy-paste it directly.
 
-**8. Verdict comment content — Crog's responsibility**
+**7. Verdict comment content — Crog's responsibility**
 When Crog posts Clead's verdict as a PR comment, the comment must contain Clead's **full review text**: threat model, assessment, what was not checked, and verdict. Do not reduce it to just the approval line. The full review is the permanent GitHub record of what was checked and why it was safe to merge.
-
-**7. ~~Copi review gate~~** _(removed — Copi is suspended; Clead approves all PR types independently)_
 
 ---
 
