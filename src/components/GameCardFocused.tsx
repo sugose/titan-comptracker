@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Match } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
-import { formatInTimeZone, getVenueTimeZone } from "../utils/time";
+import { formatInTimeZone } from "../utils/time";
 
 interface GameCardFocusedProps {
   match: Match;
@@ -19,8 +19,6 @@ function scoreText(match: Match): string {
 
 export function GameCardFocused({ match, deviceTimeZone }: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
-  const venueTimeZone = getVenueTimeZone(match.venue.city, match.venue.country);
-  const kickOffVenueTime = formatInTimeZone(match.utcDate, venueTimeZone);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
 
   return (
@@ -41,8 +39,6 @@ export function GameCardFocused({ match, deviceTimeZone }: GameCardFocusedProps)
       </View>
 
       <View style={styles.times}>
-        <Text style={styles.timeLabel}>Venue time</Text>
-        <Text style={styles.timeValue}>{kickOffVenueTime}</Text>
         <Text style={styles.timeLabel}>Your time</Text>
         <Text style={styles.timeValue}>{kickOffDeviceTime}</Text>
       </View>
