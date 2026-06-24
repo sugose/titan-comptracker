@@ -105,6 +105,7 @@ export default function MatchScheduleScreen() {
   const [crests, setCrests] = useState<Record<string, string>>({});
   const fetchedIds = useRef<Set<number>>(new Set());
   const snapEnabled = useRef(false);
+  const nowScrollPendingRef = useRef(false);
   const cardLayouts = useRef<Record<number, CardLayout>>({});
   const matchCountRef = useRef(0);
   const currentFocusRef = useRef(0);
@@ -199,6 +200,7 @@ export default function MatchScheduleScreen() {
   React.useEffect(() => {
     if (!snapEnabled.current) return;
     if (state.status !== "success") return;
+    if (nowScrollPendingRef.current) return;
     scrollViewRef.current?.scrollTo({
       y: computeScrollOffset(currentFocus, cardLayouts.current),
       animated: true,
@@ -208,12 +210,9 @@ export default function MatchScheduleScreen() {
   const handleNow = useCallback(() => {
     if (state.status !== "success") return;
     const nowIndex = smartFocusIndex(state.matches);
+    nowScrollPendingRef.current = true;
     currentFocusRef.current = nowIndex;
     setCurrentFocus(nowIndex);
-    scrollViewRef.current?.scrollTo({
-      y: computeScrollOffset(nowIndex, cardLayouts.current),
-      animated: true,
-    });
   }, [state]);
 
   if (state.status === "loading") {
@@ -254,6 +253,13 @@ export default function MatchScheduleScreen() {
             screenH={screenH}
             onMeasured={(y, height) => {
               cardLayouts.current[index] = { y, height };
+              if (nowScrollPendingRef.current && index === currentFocusRef.current) {
+                nowScrollPendingRef.current = false;
+                scrollViewRef.current?.scrollTo({
+                  y: computeScrollOffset(index, cardLayouts.current),
+                  animated: true,
+                });
+              }
             }}
           >
             {index === currentFocus ? (
