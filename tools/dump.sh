@@ -55,6 +55,9 @@ You are Clead, Tech Owner on the titan-comptracker project. Before doing anythin
 EOF
 
 git ls-files "$start_dir" | while read file; do
+    if file --mime-encoding "$file" | grep -q "binary"; then
+        continue
+    fi
     git_version=$(git log -1 --format="%H" -- "$file")
     echo "=== FILE: $file | GIT VERSION: $git_version ===" >> "$output_file"
 
