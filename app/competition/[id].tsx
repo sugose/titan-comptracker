@@ -20,7 +20,10 @@ import {
 } from "../../src/services/footballDataService";
 import type { Match } from "../../src/types/competition";
 
-// Approximate card heights used to compute which card centre is closest to the viewport centre.
+// Approximate card heights used to estimate scroll position → focus index.
+// These are intentional approximations — actual rendered heights vary by device,
+// font scaling, and content length. A future PBI should replace this with
+// onLayout-based measurement for pixel-accurate focus tracking.
 const COMPACT_CARD_HEIGHT = 72;
 const FOCUSED_CARD_HEIGHT = 200;
 
@@ -44,6 +47,10 @@ function errorMessage(err: unknown): string {
   return "An unexpected error occurred.";
 }
 
+// Note: this function uses the current focusedIdx to estimate card heights during
+// iteration, creating a brief circular dependency when focus transitions. The
+// approximation is acceptable for smooth scrolling but may produce a one-frame
+// lag on fast scrolls. Acceptable for this iteration.
 // Return the index of the card whose centre is closest to the vertical midpoint of the viewport.
 function focusedIndex(scrollY: number, matches: Match[], focusedIdx: number): number {
   const viewportHeight = Dimensions.get("window").height;
