@@ -95,6 +95,7 @@ export default function MatchScheduleScreen() {
   const fetchedIds = useRef<Set<number>>(new Set());
   const snapEnabled = useRef(false);
   const scaleValues = useRef<Animated.Value[]>([]);
+  const [scaleValuesReady, setScaleValuesReady] = useState(false);
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const scrollY = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -106,9 +107,6 @@ export default function MatchScheduleScreen() {
         const ongoingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "ONGOING");
         const upcomingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "UPCOMING");
         const initialFocus = ongoingIdx !== -1 ? ongoingIdx : upcomingIdx !== -1 ? upcomingIdx : 0;
-        scaleValues.current = sorted.map(
-          (_, i) => new Animated.Value(i === initialFocus ? 1.0 : 0.88),
-        );
         setCurrentFocus(initialFocus);
         setState({ status: "success", matches: sorted });
 
@@ -130,6 +128,15 @@ export default function MatchScheduleScreen() {
       .then((result) => setCrests(result))
       .catch(() => {});
   }, [id]);
+
+  React.useEffect(() => {
+    if (state.status !== "success") return;
+    if (scaleValues.current.length === state.matches.length) return;
+    scaleValues.current = state.matches.map(
+      (_, i) => new Animated.Value(i === currentFocus ? 1.0 : 0.88),
+    );
+    setScaleValuesReady(true);
+  }, [state, currentFocus]);
 
   React.useEffect(() => {
     if (state.status !== "success") return;
