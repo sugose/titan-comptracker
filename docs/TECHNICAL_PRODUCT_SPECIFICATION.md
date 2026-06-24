@@ -111,13 +111,23 @@ Compact size — narrower and shorter than the focused card. Displays:
 - Score: shown if game state is ONGOING or FINISHED; hidden if UPCOMING
 
 ### In Focus Card
-Full horizontal width. Height determined by content. Displays everything the out-of-focus card shows, plus additional fields to be specified in a future PBI. Visual treatment: a "magnifying glass" effect — the card scales up and gains a visual depth treatment (subtle shadow, border glow, or scale transform) that distinguishes it from surrounding cards.
+Full horizontal width. Height determined by content. Displays everything the out-of-focus card shows, plus:
+- Venue name, city, country
+Visual treatment: a "magnifying glass" effect — the card scales up and gains a visual depth treatment (subtle shadow, border glow, or scale transform) that distinguishes it from surrounding cards.
+
+Note: venue local time is not displayed. The football-data.org free tier does not return venue city/country at the match level, so `getVenueTimeZone` always falls back to UTC. See Known Unknowns.
 
 ### Scroll Behaviour
 - Smooth continuous scrolling — no snap/paging
 - Card in the vertical centre of the visible area is considered "in focus"
 - As the user scrolls, focus transitions smoothly between cards
 - Out-of-focus cards peek above and below the focused card
+
+### Initial Focus on Load
+When the match list loads, focus is set automatically:
+1. First ONGOING match (IN_PLAY, PAUSED, or LIVE) — most relevant for live tracking
+2. If none, first UPCOMING match (SCHEDULED or TIMED)
+3. If neither, index 0 (first match in the sorted list)
 
 ### Game State Mapping
 
@@ -142,3 +152,4 @@ Full horizontal width. Height determined by content. Displays everything the out
 - Venue time zone mapping: the API does not return IANA time zones for venues. We will maintain a hard-coded lookup table of all 2026 host cities. This is a known limitation — if a city is missing from the table, we fall back to UTC and display a note.
 - Match status values: the full set of statuses returned by the API may differ from what is documented. The `GameCard` must handle unknown status values gracefully (display the raw string rather than crashing).
 - iOS testing: primary development and testing is on Android. iOS will be verified manually once the Android implementation is stable.
+- Venue local time: the football-data.org free tier does not return venue city/country at the match level, so `getVenueTimeZone` always falls back to UTC. Venue local time display has been removed from `GameCardFocused` until structured venue location data is available. A future PBI may implement stadium-name-based timezone lookup as a workaround.

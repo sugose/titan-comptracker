@@ -19,6 +19,7 @@ import {
   getMatches,
 } from "../../src/services/footballDataService";
 import type { Match } from "../../src/types/competition";
+import { gameStateLabel } from "../../src/utils/gameState";
 
 // Approximate card heights used to estimate scroll position → focus index.
 // These are intentional approximations — actual rendered heights vary by device,
@@ -84,6 +85,10 @@ export default function MatchScheduleScreen() {
     getMatches(id)
       .then((matches) => {
         const sorted = [...matches].sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+        const ongoingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "ONGOING");
+        const upcomingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "UPCOMING");
+        const initialFocus = ongoingIdx !== -1 ? ongoingIdx : upcomingIdx !== -1 ? upcomingIdx : 0;
+        setCurrentFocus(initialFocus);
         setState({ status: "success", matches: sorted });
       })
       .catch((err: unknown) => {

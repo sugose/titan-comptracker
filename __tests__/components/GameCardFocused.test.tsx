@@ -5,7 +5,6 @@ import type { Match } from "../../src/types/competition";
 
 jest.mock("../../src/utils/time", () => ({
   formatInTimeZone: jest.fn((_utcDate: string, tz: string) => `formatted:${tz}`),
-  getVenueTimeZone: jest.fn(() => "America/Mexico_City"),
 }));
 
 jest.mock("../../src/utils/gameState", () => ({
@@ -53,11 +52,6 @@ describe("GameCardFocused", () => {
   it("renders kick-off time in device local time zone", () => {
     render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
     expect(screen.getByText("formatted:Europe/Stockholm")).toBeTruthy();
-  });
-
-  it("renders kick-off time in venue local time zone", () => {
-    render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
-    expect(screen.getByText("formatted:America/Mexico_City")).toBeTruthy();
   });
 
   it("renders the venue arena name", () => {
