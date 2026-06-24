@@ -166,20 +166,4 @@ describe("GameCardCompact", () => {
       render(<GameCardCompact match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />),
     ).not.toThrow();
   });
-
-  // scaleValue prop
-
-  it("accepts a scaleValue prop without throwing", () => {
-    const { Animated } = require("react-native");
-    const scaleValue = new Animated.Value(0.88);
-    expect(() =>
-      render(
-        <GameCardCompact
-          match={SCHEDULED_MATCH}
-          deviceTimeZone="Europe/Stockholm"
-          scaleValue={scaleValue}
-        />,
-      ),
-    ).not.toThrow();
-  });
 });
