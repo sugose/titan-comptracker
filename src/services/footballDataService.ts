@@ -35,6 +35,13 @@ interface ApiTeam {
   name: string;
 }
 
+interface ApiScore {
+  fullTime: {
+    home: number | null;
+    away: number | null;
+  };
+}
+
 interface ApiMatch {
   id: number;
   utcDate: string;
@@ -42,6 +49,7 @@ interface ApiMatch {
   venue?: string;
   homeTeam: ApiTeam;
   awayTeam: ApiTeam;
+  score?: ApiScore;
 }
 
 interface ApiResponse {
@@ -64,6 +72,12 @@ function mapMatch(apiMatch: ApiMatch): Match {
       city: "",
       country: "",
     },
+    ...(apiMatch.score !== undefined && {
+      score: {
+        home: apiMatch.score.fullTime.home,
+        away: apiMatch.score.fullTime.away,
+      },
+    }),
   };
 }
 
