@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import React from "react";
-import { Animated } from "react-native";
 import MatchScheduleScreen from "../../app/competition/[id]";
 import {
   ApiError,
@@ -151,6 +150,7 @@ const SAMPLE_EVENTS: MatchEvent[] = [
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.restoreAllMocks();
   jest.useRealTimers();
   // Default: resolve with empty events so async updates don't leak across tests
   (getMatchDetail as jest.Mock).mockResolvedValue({ events: [] });
@@ -411,6 +411,7 @@ describe("MatchScheduleScreen", () => {
   });
 
   it("calls Animated.parallel with two Animated.timing calls on focus change via tap", async () => {
+    const { Animated } = require("react-native");
     const parallelSpy = jest
       .spyOn(Animated, "parallel")
       .mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() } as never);
