@@ -15,6 +15,7 @@
 | ID | Description | Status | Branch | PR |
 |---|---|---|---|---|
 | PBI-1.1 | Match schedule service and game card (FIFA World Cup 2026) | ✅ | feature/pbi-1-1-match-schedule-service-and-game-card | #4 |
+| PBI-1.2 | Competition select screen and match schedule screen | ✅ | feature/pbi-1-2-competition-select-and-match-schedule-screens | #9 |
 
 ---
 
