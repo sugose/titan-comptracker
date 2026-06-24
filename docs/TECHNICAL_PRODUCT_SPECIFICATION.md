@@ -23,8 +23,9 @@ src/
     GameCardCompact.tsx   # Out-of-focus carousel card
     GameCardFocused.tsx   # In-focus carousel card
   services/
-    competitionService.ts # football-data.org competitions API client
-    footballDataService.ts  # football-data.org matches API client
+    competitionService.ts  # football-data.org competitions API client
+    footballDataService.ts # football-data.org matches API client
+    matchDetailService.ts  # football-data.org single match detail API client
   types/
     competition.ts        # Competition, Season, Match, Venue types
   utils/
@@ -41,10 +42,56 @@ src/
 5. MatchScheduleScreen calls `footballDataService.getMatches(competitionCode)` on mount
 6. Response is typed, validated, and returned as `Match[]`
 7. Screen renders a vertical carousel of `GameCardFocused` / `GameCardCompact` components, sorted by UTC kick-off time ascending, with smart initial focus (ONGOING → UPCOMING → index 0)
+8. When the focused card is ONGOING or FINISHED, the screen fetches `matchDetailService.getMatchDetail(matchId)` and passes events to `GameCardFocused`
 
 ---
 
 ## Component Specs
+
+### `matchDetailService.getMatchDetail(matchId: number): Promise<MatchDetail>`
+
+- Fetches match detail from `GET /v4/matches/{matchId}`
+- Sets request header `X-Auth-Token: <EXPO_PUBLIC_API_KEY>`
+- Inspects rate limit headers (same pattern as `footballDataService`)
+- Maps goals, bookings, and substitutions to typed `MatchEvent[]`
+- Treats null goals/bookings/substitutions arrays from the API as empty arrays
+- Determines HOME/AWAY team side by comparing `team.id` against `homeTeam.id`
+- Sorts all events by minute ascending
+- Throws `RateLimitError`, `NetworkError`, `ApiError` on failure
+- Returns `MatchDetail` (extends `Match` with `events: MatchEvent[]`)
+
+### `MatchDetail`, `MatchEvent` types
+
+```typescript
+interface GoalEvent {
+  type: 'GOAL';
+  minute: number;
+  team: 'HOME' | 'AWAY';
+  scorer: string;
+}
+
+interface BookingEvent {
+  type: 'BOOKING';
+  minute: number;
+  team: 'HOME' | 'AWAY';
+  player: string;
+  card: 'YELLOW_CARD' | 'RED_CARD';
+}
+
+interface SubstitutionEvent {
+  type: 'SUBSTITUTION';
+  minute: number;
+  team: 'HOME' | 'AWAY';
+  playerOut: string;
+  playerIn: string;
+}
+
+type MatchEvent = GoalEvent | BookingEvent | SubstitutionEvent;
+
+interface MatchDetail extends Match {
+  events: MatchEvent[];
+}
+```
 
 ### `competitionService.getCompetitions(): Promise<Competition[]>`
 
@@ -156,15 +203,42 @@ Compact size — narrower and shorter than the focused card. Displays:
 ### In Focus Card
 Full horizontal width. Height determined by content. Displays everything the out-of-focus card shows, plus:
 - Venue name, city, country
+- Match events (goals, bookings, substitutions) for ONGOING and FINISHED matches
+
 Visual treatment: a "magnifying glass" effect — the card scales up and gains a visual depth treatment (subtle shadow, border glow, or scale transform) that distinguishes it from surrounding cards.
 
 Note: venue local time is not displayed. The football-data.org free tier does not return venue city/country at the match level, so `getVenueTimeZone` always falls back to UTC. See Known Unknowns.
+
+#### Events prop (`events?: MatchEvent[] | null`)
+
+| Value | Behaviour |
+|---|---|
+| `undefined` | No events section shown (UPCOMING matches, or before first focus) |
+| `null` | Small loading indicator shown below card content |
+| `[]` | No events section shown (fetch succeeded, no events returned) |
+| `MatchEvent[]` | Events rendered chronologically, home events left-aligned, away events right-aligned |
+
+Event display format per row: `minute'` + icon/description
+- GOAL: `⚽ [scorer]`
+- BOOKING YELLOW_CARD: `🟨 [player]`
+- BOOKING RED_CARD: `🟥 [player]`
+- SUBSTITUTION: `↓ [playerOut] / ↑ [playerIn]`
 
 ### Scroll Behaviour
 - Smooth continuous scrolling — no snap/paging
 - Card in the vertical centre of the visible area is considered "in focus"
 - As the user scrolls, focus transitions smoothly between cards
 - Out-of-focus cards peek above and below the focused card
+
+### Event Fetching Behaviour
+
+When a match card gains focus (on initial load or via scroll):
+- If the match is ONGOING or FINISHED: fetch `getMatchDetail(match.id)` if not already cached
+- While fetching: pass `events={null}` to `GameCardFocused` (shows loading indicator)
+- On success: cache result and pass `events={detail.events}` to `GameCardFocused`
+- On error: cache empty array (`events=[]`) — fail silently, events are supplementary
+- If the match is UPCOMING: pass `events={undefined}` — no events section shown
+- Cache key is `match.id`; each match is fetched at most once per screen mount
 
 ### Initial Focus on Load
 When the match list loads, focus is set automatically:

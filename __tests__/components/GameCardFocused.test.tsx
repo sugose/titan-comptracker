@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react-native";
 import React from "react";
 import { GameCardFocused } from "../../src/components/GameCardFocused";
-import type { Match } from "../../src/types/competition";
+import type { Match, MatchEvent } from "../../src/types/competition";
 
 jest.mock("../../src/utils/time", () => ({
   formatInTimeZone: jest.fn((_utcDate: string, tz: string) => `formatted:${tz}`),
@@ -29,6 +29,30 @@ const FINISHED_MATCH: Match = {
   awayTeam: "Argentina",
   venue: { name: "BMO Field", city: "Toronto", country: "Canada" },
   score: { home: 3, away: 2 },
+};
+
+const GOAL_HOME: MatchEvent = { type: "GOAL", minute: 23, team: "HOME", scorer: "Hernandez" };
+const GOAL_AWAY: MatchEvent = { type: "GOAL", minute: 67, team: "AWAY", scorer: "Pulisic" };
+const BOOKING_YELLOW: MatchEvent = {
+  type: "BOOKING",
+  minute: 34,
+  team: "AWAY",
+  player: "Adams",
+  card: "YELLOW_CARD",
+};
+const BOOKING_RED: MatchEvent = {
+  type: "BOOKING",
+  minute: 80,
+  team: "HOME",
+  player: "Moreno",
+  card: "RED_CARD",
+};
+const SUB_HOME: MatchEvent = {
+  type: "SUBSTITUTION",
+  minute: 60,
+  team: "HOME",
+  playerOut: "Lozano",
+  playerIn: "Antuna",
 };
 
 beforeEach(() => {
@@ -100,5 +124,109 @@ describe("GameCardFocused", () => {
       Array.isArray(transform) && transform.find((t: Record<string, number>) => "scale" in t);
     expect(scaleEntry).toBeTruthy();
     expect(scaleEntry.scale).toBeGreaterThan(0.88);
+  });
+
+  // Events prop tests
+
+  it("shows no events section when events is undefined", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={undefined}
+      />,
+    );
+    expect(screen.queryByTestId("events-loading")).toBeNull();
+    expect(screen.queryByTestId("events-list")).toBeNull();
+  });
+
+  it("shows loading indicator when events is null", () => {
+    render(
+      <GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" events={null} />,
+    );
+    expect(screen.getByTestId("events-loading")).toBeTruthy();
+  });
+
+  it("shows no events section when events is an empty array", () => {
+    render(
+      <GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" events={[]} />,
+    );
+    expect(screen.queryByTestId("events-loading")).toBeNull();
+    expect(screen.queryByTestId("events-list")).toBeNull();
+  });
+
+  it("renders a goal event on the home side with scorer name", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[GOAL_HOME]}
+      />,
+    );
+    expect(screen.getByTestId("events-list")).toBeTruthy();
+    expect(screen.getByText(/Hernandez/)).toBeTruthy();
+    expect(screen.getByText(/23'/)).toBeTruthy();
+  });
+
+  it("renders an away goal event on the away side", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[GOAL_AWAY]}
+      />,
+    );
+    expect(screen.getByText(/Pulisic/)).toBeTruthy();
+  });
+
+  it("renders yellow card booking with correct icon", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[BOOKING_YELLOW]}
+      />,
+    );
+    expect(screen.getByText(/Adams/)).toBeTruthy();
+    expect(screen.getByText(/🟨/)).toBeTruthy();
+  });
+
+  it("renders red card booking with correct icon", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[BOOKING_RED]}
+      />,
+    );
+    expect(screen.getByText(/Moreno/)).toBeTruthy();
+    expect(screen.getByText(/🟥/)).toBeTruthy();
+  });
+
+  it("renders substitution with playerOut and playerIn", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[SUB_HOME]}
+      />,
+    );
+    expect(screen.getByText(/Lozano/)).toBeTruthy();
+    expect(screen.getByText(/Antuna/)).toBeTruthy();
+  });
+
+  it("renders multiple events sorted by minute", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[GOAL_HOME, BOOKING_YELLOW, GOAL_AWAY]}
+      />,
+    );
+    const minuteTexts = screen.getAllByText(/\d+'/);
+    const minutes = minuteTexts.map((el) =>
+      Number.parseInt(el.props.children.replace("'", ""), 10),
+    );
+    expect(minutes).toEqual([...minutes].sort((a, b) => a - b));
   });
 });

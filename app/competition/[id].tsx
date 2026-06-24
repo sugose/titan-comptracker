@@ -18,7 +18,8 @@ import {
   RateLimitError,
   getMatches,
 } from "../../src/services/footballDataService";
-import type { Match } from "../../src/types/competition";
+import { getMatchDetail } from "../../src/services/matchDetailService";
+import type { Match, MatchEvent } from "../../src/types/competition";
 import { gameStateLabel } from "../../src/utils/gameState";
 
 // Approximate card heights used to estimate scroll position → focus index.
@@ -78,6 +79,8 @@ export default function MatchScheduleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [currentFocus, setCurrentFocus] = useState(0);
+  const [matchEvents, setMatchEvents] = useState<Record<number, MatchEvent[] | null>>({});
+  const fetchedIds = useRef<Set<number>>(new Set());
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const scrollY = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -110,6 +113,24 @@ export default function MatchScheduleScreen() {
         setState({ status: "error", message: errorMessage(err) });
       });
   }, [id]);
+
+  React.useEffect(() => {
+    if (state.status !== "success") return;
+    const match = state.matches[currentFocus];
+    if (!match) return;
+    const label = gameStateLabel(match.status);
+    if (label !== "ONGOING" && label !== "FINISHED") return;
+    if (fetchedIds.current.has(match.id)) return;
+    fetchedIds.current.add(match.id);
+    setMatchEvents((prev) => ({ ...prev, [match.id]: null }));
+    getMatchDetail(match.id)
+      .then((detail) => {
+        setMatchEvents((prev) => ({ ...prev, [match.id]: detail.events }));
+      })
+      .catch(() => {
+        setMatchEvents((prev) => ({ ...prev, [match.id]: [] }));
+      });
+  }, [currentFocus, state]);
 
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     scrollY.current = event.nativeEvent.contentOffset.y;
@@ -146,7 +167,12 @@ export default function MatchScheduleScreen() {
     >
       {state.matches.map((match, index) =>
         index === currentFocus ? (
-          <GameCardFocused key={match.id} match={match} deviceTimeZone={deviceTimeZone} />
+          <GameCardFocused
+            key={match.id}
+            match={match}
+            deviceTimeZone={deviceTimeZone}
+            events={matchEvents[match.id]}
+          />
         ) : (
           <GameCardCompact key={match.id} match={match} deviceTimeZone={deviceTimeZone} />
         ),
