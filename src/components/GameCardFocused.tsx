@@ -48,23 +48,22 @@ export function GameCardFocused({ match, deviceTimeZone, events, onReload }: Gam
 
   return (
     <View testID="focused-card" style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.teams}>
-          <Text style={styles.teamName}>{match.homeTeam}</Text>
-          <Text style={styles.vs}>vs</Text>
-          <Text style={styles.teamName}>{match.awayTeam}</Text>
-        </View>
-        {showReload && (
-          <TouchableOpacity
-            testID="reload-button"
-            onPress={onReload}
-            style={styles.reloadButton}
-            accessibilityLabel="Reload events"
-          >
-            <Text style={styles.reloadIcon}>🔄</Text>
-          </TouchableOpacity>
-        )}
+      <View style={styles.teams}>
+        <Text style={styles.teamName}>{match.homeTeam}</Text>
+        <Text style={styles.vs}>vs</Text>
+        <Text style={styles.teamName}>{match.awayTeam}</Text>
       </View>
+
+      {showReload && (
+        <TouchableOpacity
+          testID="reload-button"
+          onPress={onReload}
+          style={styles.reloadButton}
+          accessibilityLabel="Reload events"
+        >
+          <Text style={styles.reloadIcon}>🔄</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.badgeRow}>
         <Text style={styles.badge}>{label}</Text>
@@ -126,16 +125,11 @@ const styles = StyleSheet.create({
     borderColor: "#334488",
     transform: [{ scale: 1.0 }],
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
   teams: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 10,
   },
   teamName: {
     color: "#ffffff",
@@ -150,7 +144,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   reloadButton: {
-    paddingLeft: 8,
+    position: "absolute",
+    top: 10,
+    right: 12,
   },
   reloadIcon: {
     fontSize: 16,
