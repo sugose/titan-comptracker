@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { Match } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
@@ -41,7 +42,7 @@ export function GameCardCompact({
               testID="home-crest"
               source={{ uri: homeCrest }}
               style={styles.crest}
-              resizeMode="contain"
+              contentFit="contain"
             />
           )}
           <Text style={styles.teamName} numberOfLines={1}>
@@ -58,7 +59,7 @@ export function GameCardCompact({
               testID="away-crest"
               source={{ uri: awayCrest }}
               style={styles.crest}
-              resizeMode="contain"
+              contentFit="contain"
             />
           )}
         </View>
