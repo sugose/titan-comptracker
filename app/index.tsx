@@ -17,9 +17,7 @@ type ScreenState =
 
 function errorMessage(err: unknown): string {
   if (err instanceof RateLimitError) {
-    return err.resetTimestamp
-      ? `Rate limit reached. Try again after ${new Date(Number(err.resetTimestamp) * 1000).toLocaleTimeString()}.`
-      : "Rate limit reached. Please wait before retrying.";
+    return "Too many requests — please wait a moment and try again.";
   }
   if (err instanceof NetworkError) {
     return "Network error. Check your connection and try again.";

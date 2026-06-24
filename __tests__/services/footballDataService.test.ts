@@ -147,9 +147,30 @@ describe("getMatches", () => {
   it("ApiError includes the HTTP status code", async () => {
     global.fetch = jest
       .fn()
+      .mockResolvedValueOnce(makeMockResponse({ ok: false, status: 500, availableRequests: null }));
+
+    await expect(getMatches("WC")).rejects.toMatchObject({ statusCode: 500 });
+  });
+
+  it("throws RateLimitError (not ApiError) when status is 429 even if X-Requests-Available is null", async () => {
+    global.fetch = jest
+      .fn()
       .mockResolvedValueOnce(makeMockResponse({ ok: false, status: 429, availableRequests: null }));
 
-    await expect(getMatches("WC")).rejects.toMatchObject({ statusCode: 429 });
+    await expect(getMatches("WC")).rejects.toBeInstanceOf(RateLimitError);
+  });
+
+  it("RateLimitError from 429 includes resetTimestamp when header is present", async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce(
+      makeMockResponse({
+        ok: false,
+        status: 429,
+        availableRequests: null,
+        resetTimestamp: "1750000000",
+      }),
+    );
+
+    await expect(getMatches("WC")).rejects.toMatchObject({ resetTimestamp: "1750000000" });
   });
 
   it("returns an empty array when the API returns no matches", async () => {

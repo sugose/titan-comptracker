@@ -1,13 +1,6 @@
 import { Image } from "expo-image";
 import React from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, StyleSheet, Text, View } from "react-native";
 import type { Match, MatchEvent } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
@@ -18,7 +11,6 @@ interface GameCardFocusedProps {
   match: Match;
   deviceTimeZone: string;
   events?: MatchEvent[] | null;
-  onReload?: () => void;
   homeCrest?: string;
   awayCrest?: string;
   scaleValue?: Animated.Value;
@@ -58,14 +50,12 @@ export function GameCardFocused({
   match,
   deviceTimeZone,
   events,
-  onReload,
   homeCrest,
   awayCrest,
   scaleValue,
 }: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
-  const showReload = events !== undefined;
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleValue ?? 1.0 }] }}>
@@ -95,17 +85,6 @@ export function GameCardFocused({
             )}
           </View>
         </View>
-
-        {showReload && (
-          <TouchableOpacity
-            testID="reload-button"
-            onPress={onReload}
-            style={styles.reloadButton}
-            accessibilityLabel="Reload events"
-          >
-            <Text style={styles.reloadIcon}>🔄</Text>
-          </TouchableOpacity>
-        )}
 
         <View style={styles.badgeRow}>
           <Text style={styles.badge}>{label}</Text>
@@ -197,14 +176,6 @@ const styles = StyleSheet.create({
     color: "#888888",
     fontSize: 12,
     marginHorizontal: 8,
-  },
-  reloadButton: {
-    position: "absolute",
-    top: 10,
-    right: 12,
-  },
-  reloadIcon: {
-    fontSize: 16,
   },
   badgeRow: {
     flexDirection: "row",

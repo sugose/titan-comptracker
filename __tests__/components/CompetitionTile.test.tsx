@@ -3,6 +3,8 @@ import React from "react";
 import { CompetitionTile } from "../../src/components/CompetitionTile";
 import type { Competition } from "../../src/types/competition";
 
+const TODAY = "2026-06-24T12:00:00Z";
+
 const COMPETITION: Competition = {
   id: 2000,
   code: "WC",
@@ -34,6 +36,14 @@ const COMPETITION_NO_SEASON: Competition = {
   area: "Netherlands",
   currentSeason: null,
 };
+
+beforeEach(() => {
+  jest.useFakeTimers({ now: new Date(TODAY) });
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 describe("CompetitionTile", () => {
   it("renders the competition name", () => {
@@ -83,5 +93,59 @@ describe("CompetitionTile", () => {
     render(<CompetitionTile competition={COMPETITION_NO_SEASON} onPress={jest.fn()} />);
     expect(screen.getByText("Eredivisie")).toBeTruthy();
     expect(screen.getByText("Netherlands")).toBeTruthy();
+  });
+
+  // seasonStatus tests
+
+  it("shows days remaining when season has not started yet", () => {
+    const competition: Competition = {
+      ...COMPETITION,
+      currentSeason: {
+        startDate: "2026-07-01",
+        endDate: "2027-05-30",
+        currentMatchday: null,
+      },
+    };
+    render(<CompetitionTile competition={competition} onPress={jest.fn()} />);
+    expect(screen.getByText(/Season starts/)).toBeTruthy();
+    expect(screen.getByText(/in 7 days/)).toBeTruthy();
+  });
+
+  it("shows singular 'day' when exactly 1 day remains", () => {
+    const competition: Competition = {
+      ...COMPETITION,
+      currentSeason: {
+        startDate: "2026-06-25",
+        endDate: "2027-05-30",
+        currentMatchday: null,
+      },
+    };
+    render(<CompetitionTile competition={competition} onPress={jest.fn()} />);
+    expect(screen.getByText(/in 1 day$/)).toBeTruthy();
+  });
+
+  it("shows 'The season starts TODAY!' when startDate is today", () => {
+    const competition: Competition = {
+      ...COMPETITION,
+      currentSeason: {
+        startDate: "2026-06-24",
+        endDate: "2027-05-30",
+        currentMatchday: null,
+      },
+    };
+    render(<CompetitionTile competition={competition} onPress={jest.fn()} />);
+    expect(screen.getByText("The season starts TODAY!")).toBeTruthy();
+  });
+
+  it("shows matchday when season is in progress and currentMatchday is set", () => {
+    render(<CompetitionTile competition={COMPETITION_WITH_MATCHDAY} onPress={jest.fn()} />);
+    expect(screen.getByText("Matchday 34")).toBeTruthy();
+  });
+
+  it("shows nothing for season status when season is in progress and currentMatchday is null", () => {
+    render(<CompetitionTile competition={COMPETITION} onPress={jest.fn()} />);
+    expect(screen.queryByText(/Matchday/)).toBeNull();
+    expect(screen.queryByText(/Season starts/)).toBeNull();
+    expect(screen.queryByText(/TODAY/)).toBeNull();
   });
 });

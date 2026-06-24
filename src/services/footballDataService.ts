@@ -101,6 +101,10 @@ export async function getMatches(competitionId: string): Promise<Match[]> {
     throw new RateLimitError(reset);
   }
 
+  if (response.status === 429) {
+    throw new RateLimitError(reset);
+  }
+
   if (!response.ok) {
     throw new ApiError(response.status);
   }

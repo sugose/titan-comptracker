@@ -233,4 +233,25 @@ describe("getCompetitions", () => {
     const competitions = await getCompetitions();
     expect(competitions).toEqual([]);
   });
+
+  it("throws RateLimitError (not ApiError) when status is 429 even if X-Requests-Available is null", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(makeMockResponse({ ok: false, status: 429, availableRequests: null }));
+
+    await expect(getCompetitions()).rejects.toBeInstanceOf(RateLimitError);
+  });
+
+  it("RateLimitError from 429 includes resetTimestamp when header is present", async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce(
+      makeMockResponse({
+        ok: false,
+        status: 429,
+        availableRequests: null,
+        resetTimestamp: "1750000000",
+      }),
+    );
+
+    await expect(getCompetitions()).rejects.toMatchObject({ resetTimestamp: "1750000000" });
+  });
 });

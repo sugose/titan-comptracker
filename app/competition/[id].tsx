@@ -47,9 +47,7 @@ type ScreenState =
 
 function errorMessage(err: unknown): string {
   if (err instanceof RateLimitError) {
-    return err.resetTimestamp
-      ? `Rate limit reached. Try again after ${new Date(Number(err.resetTimestamp) * 1000).toLocaleTimeString()}.`
-      : "Rate limit reached. Please wait before retrying.";
+    return "Too many requests — please wait a moment and try again.";
   }
   if (err instanceof NetworkError) {
     return "Network error. Check your connection and try again.";
@@ -180,18 +178,6 @@ export default function MatchScheduleScreen() {
     setCurrentFocus(next);
   }
 
-  function reloadEvents(matchId: number) {
-    fetchedIds.current.delete(matchId);
-    setMatchEvents((prev) => ({ ...prev, [matchId]: null }));
-    getMatchDetail(matchId)
-      .then((detail) => {
-        setMatchEvents((prev) => ({ ...prev, [matchId]: detail.events }));
-      })
-      .catch(() => {
-        setMatchEvents((prev) => ({ ...prev, [matchId]: [] }));
-      });
-  }
-
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     scrollY.current = event.nativeEvent.contentOffset.y;
     if (state.status !== "success") return;
@@ -232,7 +218,6 @@ export default function MatchScheduleScreen() {
             match={match}
             deviceTimeZone={deviceTimeZone}
             events={matchEvents[match.id]}
-            onReload={() => reloadEvents(match.id)}
             homeCrest={crests[match.homeTeam]}
             awayCrest={crests[match.awayTeam]}
             scaleValue={scaleValues.current[index]}
