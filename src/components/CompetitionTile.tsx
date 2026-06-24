@@ -8,7 +8,10 @@ interface CompetitionTileProps {
 }
 
 function seasonYears(startDate: string, endDate: string): string {
-  return `${startDate.slice(0, 4)} – ${endDate.slice(0, 4)}`;
+  const startYear = startDate.slice(0, 4);
+  const endYear = endDate.slice(0, 4);
+  if (startYear === endYear) return startYear;
+  return `${startYear} – ${endYear}`;
 }
 
 export function CompetitionTile({ competition, onPress }: CompetitionTileProps) {

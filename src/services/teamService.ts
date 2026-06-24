@@ -41,7 +41,7 @@ export async function getTeamCrests(competitionCode: string): Promise<Record<str
   const result: Record<string, string> = {};
 
   for (const team of data.teams) {
-    if (team.crest) {
+    if (team.crest && !team.crest.toLowerCase().endsWith(".svg")) {
       result[team.name] = team.crest;
     }
   }

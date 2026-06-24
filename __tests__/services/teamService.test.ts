@@ -61,6 +61,20 @@ describe("getTeamCrests", () => {
     );
   });
 
+  it("omits teams with SVG crest URLs", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({
+        teams: [
+          { name: "Mexico", crest: "https://crests.example.com/mexico.svg" },
+          { name: "USA", crest: "https://crests.example.com/usa.png" },
+        ],
+      }),
+    );
+    const result = await getTeamCrests("WC");
+    expect("Mexico" in result).toBe(false);
+    expect(result.USA).toBe("https://crests.example.com/usa.png");
+  });
+
   it("returns an empty record when teams array is empty", async () => {
     mockFetch.mockResolvedValueOnce(makeResponse({ teams: [] }));
     const result = await getTeamCrests("WC");

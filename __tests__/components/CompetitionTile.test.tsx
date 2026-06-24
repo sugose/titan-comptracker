@@ -46,9 +46,9 @@ describe("CompetitionTile", () => {
     expect(screen.getByText("World")).toBeTruthy();
   });
 
-  it("renders the season start and end years", () => {
+  it("renders only the start year when season starts and ends in the same year", () => {
     render(<CompetitionTile competition={COMPETITION} onPress={jest.fn()} />);
-    expect(screen.getByText("2026 – 2026")).toBeTruthy();
+    expect(screen.getByText("2026")).toBeTruthy();
   });
 
   it("renders start and end years spanning two calendar years", () => {
