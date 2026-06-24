@@ -30,3 +30,17 @@ export interface GameCardProps {
   match: Match;
   deviceTimeZone: string;
 }
+
+export interface Season {
+  startDate: string;
+  endDate: string;
+  currentMatchday: number | null;
+}
+
+export interface Competition {
+  id: number;
+  code: string;
+  name: string;
+  area: string;
+  currentSeason: Season | null;
+}

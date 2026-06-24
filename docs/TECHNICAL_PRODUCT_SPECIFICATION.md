@@ -18,28 +18,71 @@ app/
 
 src/
   components/
-    GameCard.tsx          # Single match card component
+    CompetitionTile.tsx   # Tappable tile for a single competition
+    GameCard.tsx          # Single match card component (legacy, superceded by carousel cards)
+    GameCardCompact.tsx   # Out-of-focus carousel card
+    GameCardFocused.tsx   # In-focus carousel card
   services/
-    footballDataService.ts  # football-data.org API client
+    competitionService.ts # football-data.org competitions API client
+    footballDataService.ts  # football-data.org matches API client
   types/
-    competition.ts        # Competition, Match, Venue types
+    competition.ts        # Competition, Season, Match, Venue types
   utils/
+    gameState.ts          # API status → display label mapping
     time.ts               # Time zone formatting utilities
 ```
 
 ### Data Flow
 
-1. App opens → CompetitionSelectScreen renders a single selectable tile: FIFA World Cup 2026
-2. User taps the tile → navigates to MatchScheduleScreen
-3. MatchScheduleScreen calls `footballDataService.getMatches(competitionId)` on mount
-4. Service fetches from `GET /v4/competitions/WC/matches` using `EXPO_PUBLIC_API_KEY`
-5. Response is typed, validated, and returned as `Match[]`
-6. Screen renders a `FlatList` of `GameCard` components, sorted by UTC kick-off time ascending
-7. First match appears at top, last match at bottom — user scrolls down through the schedule
+1. App opens → CompetitionSelectScreen calls `competitionService.getCompetitions()` on mount
+2. Service fetches from `GET /v4/competitions`, filters to 12 free tier codes, sorts by area then name
+3. Screen renders a `ScrollView` of `CompetitionTile` components
+4. User taps a tile → navigates to `MatchScheduleScreen` with the competition code
+5. MatchScheduleScreen calls `footballDataService.getMatches(competitionCode)` on mount
+6. Response is typed, validated, and returned as `Match[]`
+7. Screen renders a vertical carousel of `GameCardFocused` / `GameCardCompact` components, sorted by UTC kick-off time ascending, with smart initial focus (ONGOING → UPCOMING → index 0)
 
 ---
 
 ## Component Specs
+
+### `competitionService.getCompetitions(): Promise<Competition[]>`
+
+- Fetches competition list from `GET /v4/competitions`
+- Sets request header `X-Auth-Token: <EXPO_PUBLIC_API_KEY>`
+- Inspects rate limit headers after every call (same pattern as `footballDataService`)
+- Filters response to the 12 free tier competition codes: WC, CL, EC, PL, ELC, FL1, BL1, SA, DED, PPL, PD, BSA
+- Returns sorted `Competition[]` — sorted by area name ascending, then competition name ascending
+- Throws `RateLimitError`, `NetworkError`, `ApiError` on failure
+
+### `Competition` type
+
+```typescript
+interface Season {
+  startDate: string;
+  endDate: string;
+  currentMatchday: number | null;
+}
+
+interface Competition {
+  id: number;
+  code: string;
+  name: string;
+  area: string;       // area.name from API
+  currentSeason: Season | null;
+}
+```
+
+### `CompetitionTile` component
+
+Props: `{ competition: Competition; onPress: () => void }`
+
+Displays:
+- Competition name (large, prominent)
+- Area (country/region, smaller, below name)
+- Current season: start year – end year (e.g. "2025 – 2026"), if `currentSeason` is not null
+- Current matchday (e.g. "Matchday 34"), if `currentMatchday` is not null
+- Tapping the tile calls `onPress`
 
 ### `footballDataService.getMatches(competitionId: string): Promise<Match[]>`
 
