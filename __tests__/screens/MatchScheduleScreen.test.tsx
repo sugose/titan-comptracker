@@ -7,7 +7,8 @@ import {
   RateLimitError,
   getMatches,
 } from "../../src/services/footballDataService";
-import type { Match } from "../../src/types/competition";
+import { getMatchDetail } from "../../src/services/matchDetailService";
+import type { Match, MatchEvent } from "../../src/types/competition";
 
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ id: "WC" }),
@@ -17,6 +18,10 @@ jest.mock("../../src/services/footballDataService", () => {
   const actual = jest.requireActual("../../src/services/footballDataService");
   return { ...actual, getMatches: jest.fn() };
 });
+
+jest.mock("../../src/services/matchDetailService", () => ({
+  getMatchDetail: jest.fn(),
+}));
 
 jest.mock("../../src/components/GameCardCompact", () => ({
   GameCardCompact: ({ match }: { match: Match }) => {
@@ -29,13 +34,20 @@ jest.mock("../../src/components/GameCardCompact", () => ({
   },
 }));
 
+// Capture events prop so tests can inspect it via testID
 jest.mock("../../src/components/GameCardFocused", () => ({
-  GameCardFocused: ({ match }: { match: Match }) => {
-    const { Text } = require("react-native");
+  GameCardFocused: ({ match, events }: { match: Match; events?: MatchEvent[] | null }) => {
+    const { View, Text } = require("react-native");
     return (
-      <Text testID={`focused-${match.id}`}>
-        {match.homeTeam} vs {match.awayTeam}
-      </Text>
+      <View testID={`focused-${match.id}`}>
+        <Text>
+          {match.homeTeam} vs {match.awayTeam}
+        </Text>
+        {events === null && <Text testID="events-loading-in-card">loading</Text>}
+        {Array.isArray(events) && events.length > 0 && (
+          <Text testID="events-present-in-card">{events.length}</Text>
+        )}
+      </View>
     );
   },
 }));
@@ -91,9 +103,15 @@ const MATCH_FINISHED: Match = {
   score: { home: 1, away: 0 },
 };
 
+const SAMPLE_EVENTS: MatchEvent[] = [
+  { type: "GOAL", minute: 23, team: "HOME", scorer: "Hernandez" },
+];
+
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useRealTimers();
+  // Default: resolve with empty events so async updates don't leak across tests
+  (getMatchDetail as jest.Mock).mockResolvedValue({ events: [] });
 });
 
 describe("MatchScheduleScreen", () => {
@@ -131,18 +149,15 @@ describe("MatchScheduleScreen", () => {
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_B]);
     render(<MatchScheduleScreen />);
     await waitFor(() => {
-      // First card (index 0) is focused by default; second is compact
       expect(screen.getByTestId("focused-1")).toBeTruthy();
       expect(screen.getByTestId("compact-2")).toBeTruthy();
     });
   });
 
   it("renders matches sorted ascending by utcDate", async () => {
-    // MATCH_C (Jun 10) is earlier than MATCH_A (Jun 11) — pass in reverse order
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_C]);
     render(<MatchScheduleScreen />);
     await waitFor(() => {
-      // MATCH_C (id 3, Jun 10) must appear as focused (first); MATCH_A (id 1) compact
       expect(screen.getByTestId("focused-3")).toBeTruthy();
       expect(screen.getByTestId("compact-1")).toBeTruthy();
     });
@@ -152,7 +167,6 @@ describe("MatchScheduleScreen", () => {
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_B, MATCH_C]);
     render(<MatchScheduleScreen />);
     await waitFor(() => {
-      // After sort: MATCH_C (Jun 10) focused, MATCH_A (Jun 11) and MATCH_B (Jun 14) compact
       expect(screen.getByTestId("focused-3")).toBeTruthy();
       expect(screen.getByTestId("compact-1")).toBeTruthy();
       expect(screen.getByTestId("compact-2")).toBeTruthy();
@@ -160,7 +174,6 @@ describe("MatchScheduleScreen", () => {
   });
 
   it("focuses the first ONGOING match on load when one exists", async () => {
-    // After sort: MATCH_C (Jun 10 SCHEDULED), MATCH_ONGOING (Jun 11 IN_PLAY), MATCH_B (Jun 14 SCHEDULED)
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_B, MATCH_C, MATCH_ONGOING]);
     render(<MatchScheduleScreen />);
     await waitFor(() => {
@@ -171,11 +184,9 @@ describe("MatchScheduleScreen", () => {
   });
 
   it("focuses the first UPCOMING match when no ONGOING match exists", async () => {
-    // After sort: MATCH_FINISHED (Jun 10), MATCH_A (Jun 11 SCHEDULED), MATCH_B (Jun 14 SCHEDULED)
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_B, MATCH_A, MATCH_FINISHED]);
     render(<MatchScheduleScreen />);
     await waitFor(() => {
-      // MATCH_FINISHED is index 0 but FINISHED; first UPCOMING is MATCH_A at index 1
       expect(screen.getByTestId("focused-1")).toBeTruthy();
       expect(screen.getByTestId("compact-5")).toBeTruthy();
       expect(screen.getByTestId("compact-2")).toBeTruthy();
@@ -188,7 +199,6 @@ describe("MatchScheduleScreen", () => {
     (getMatches as jest.Mock).mockResolvedValueOnce([finishedB, finishedA]);
     render(<MatchScheduleScreen />);
     await waitFor(() => {
-      // After sort: finishedA (Jun 9) at index 0 → focused
       expect(screen.getByTestId("focused-6")).toBeTruthy();
       expect(screen.getByTestId("compact-7")).toBeTruthy();
     });
@@ -204,13 +214,82 @@ describe("MatchScheduleScreen", () => {
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_C, MATCH_ONGOING, MATCH_B]);
     render(<MatchScheduleScreen />);
 
-    // Wait for the async getMatches to resolve (use real async resolution)
     await waitFor(() => screen.getByTestId("focused-4"));
 
-    // Advance past the 100ms layout timeout — must not throw
     expect(() => jest.runAllTimers()).not.toThrow();
 
-    // Focused card is still correct after timer fires
     expect(screen.getByTestId("focused-4")).toBeTruthy();
+  });
+
+  // Event-fetching behaviour tests
+
+  it("fetches match detail when the initially focused card is ONGOING", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_ONGOING]);
+    (getMatchDetail as jest.Mock).mockResolvedValueOnce({
+      ...MATCH_ONGOING,
+      events: SAMPLE_EVENTS,
+    });
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(getMatchDetail).toHaveBeenCalledWith(MATCH_ONGOING.id);
+    });
+  });
+
+  it("fetches match detail when the initially focused card is FINISHED", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_FINISHED]);
+    (getMatchDetail as jest.Mock).mockResolvedValueOnce({
+      ...MATCH_FINISHED,
+      events: SAMPLE_EVENTS,
+    });
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(getMatchDetail).toHaveBeenCalledWith(MATCH_FINISHED.id);
+    });
+  });
+
+  it("does not fetch match detail for an UPCOMING focused card", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("focused-1"));
+    // Allow any pending promises to settle
+    await new Promise((r) => setTimeout(r, 0));
+    expect(getMatchDetail).not.toHaveBeenCalled();
+  });
+
+  it("shows events in focused card after successful fetch", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_FINISHED]);
+    (getMatchDetail as jest.Mock).mockResolvedValueOnce({
+      ...MATCH_FINISHED,
+      events: SAMPLE_EVENTS,
+    });
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("events-present-in-card")).toBeTruthy();
+    });
+  });
+
+  it("fails silently and shows no events when match detail fetch errors", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_FINISHED]);
+    (getMatchDetail as jest.Mock).mockRejectedValueOnce(new Error("network"));
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("focused-5"));
+    // Allow error handler to run
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByTestId("events-loading-in-card")).toBeNull();
+    expect(screen.queryByTestId("events-present-in-card")).toBeNull();
+  });
+
+  it("does not re-fetch match detail for an already-cached match on re-focus", async () => {
+    // Two FINISHED matches so index 0 (earliest) is the initial focus (no ONGOING/UPCOMING)
+    const finishedEarly: Match = { ...MATCH_FINISHED, id: 10, utcDate: "2026-06-09T15:00:00Z" };
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_FINISHED, finishedEarly]);
+    render(<MatchScheduleScreen />);
+    // Wait for initial fetch to complete — finishedEarly (index 0) is focused → getMatchDetail called
+    await waitFor(() => {
+      expect(getMatchDetail).toHaveBeenCalledWith(finishedEarly.id);
+    });
+    const callCount = (getMatchDetail as jest.Mock).mock.calls.length;
+    // fetchedIds ref prevents a second call for the same match
+    expect(callCount).toBe(1);
   });
 });

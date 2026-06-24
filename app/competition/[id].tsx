@@ -18,7 +18,8 @@ import {
   RateLimitError,
   getMatches,
 } from "../../src/services/footballDataService";
-import type { Match } from "../../src/types/competition";
+import { getMatchDetail } from "../../src/services/matchDetailService";
+import type { Match, MatchEvent } from "../../src/types/competition";
 import { gameStateLabel } from "../../src/utils/gameState";
 
 // Approximate card heights used to estimate scroll position → focus index.
@@ -27,6 +28,15 @@ import { gameStateLabel } from "../../src/utils/gameState";
 // onLayout-based measurement for pixel-accurate focus tracking.
 const COMPACT_CARD_HEIGHT = 72;
 const FOCUSED_CARD_HEIGHT = 200;
+
+function computeScrollOffset(focusIdx: number): number {
+  const viewportHeight = Dimensions.get("window").height;
+  let offsetBeforeFocused = 0;
+  for (let i = 0; i < focusIdx; i++) {
+    offsetBeforeFocused += COMPACT_CARD_HEIGHT + 8;
+  }
+  return Math.max(0, offsetBeforeFocused + FOCUSED_CARD_HEIGHT / 2 - viewportHeight / 2);
+}
 
 type ScreenState =
   | { status: "loading" }
@@ -78,6 +88,9 @@ export default function MatchScheduleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [currentFocus, setCurrentFocus] = useState(0);
+  const [matchEvents, setMatchEvents] = useState<Record<number, MatchEvent[] | null>>({});
+  const fetchedIds = useRef<Set<number>>(new Set());
+  const snapEnabled = useRef(false);
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const scrollY = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -93,23 +106,55 @@ export default function MatchScheduleScreen() {
         setState({ status: "success", matches: sorted });
 
         // Scroll to centre the initially focused card after layout completes.
-        const viewportHeight = Dimensions.get("window").height;
-        let offsetBeforeFocused = 0;
-        for (let i = 0; i < initialFocus; i++) {
-          offsetBeforeFocused += COMPACT_CARD_HEIGHT + 8;
-        }
-        const scrollOffset = Math.max(
-          0,
-          offsetBeforeFocused + FOCUSED_CARD_HEIGHT / 2 - viewportHeight / 2,
-        );
+        // Enable animated snap-to-centre only after this initial scroll fires.
         setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: false });
+          scrollViewRef.current?.scrollTo({
+            y: computeScrollOffset(initialFocus),
+            animated: false,
+          });
+          snapEnabled.current = true;
         }, 100);
       })
       .catch((err: unknown) => {
         setState({ status: "error", message: errorMessage(err) });
       });
   }, [id]);
+
+  React.useEffect(() => {
+    if (state.status !== "success") return;
+    const match = state.matches[currentFocus];
+    if (!match) return;
+    const label = gameStateLabel(match.status);
+    if (label !== "ONGOING" && label !== "FINISHED") return;
+    if (fetchedIds.current.has(match.id)) return;
+    fetchedIds.current.add(match.id);
+    setMatchEvents((prev) => ({ ...prev, [match.id]: null }));
+    getMatchDetail(match.id)
+      .then((detail) => {
+        setMatchEvents((prev) => ({ ...prev, [match.id]: detail.events }));
+      })
+      .catch(() => {
+        setMatchEvents((prev) => ({ ...prev, [match.id]: [] }));
+      });
+  }, [currentFocus, state]);
+
+  React.useEffect(() => {
+    if (!snapEnabled.current) return;
+    if (state.status !== "success") return;
+    scrollViewRef.current?.scrollTo({ y: computeScrollOffset(currentFocus), animated: true });
+  }, [currentFocus, state.status]);
+
+  function reloadEvents(matchId: number) {
+    fetchedIds.current.delete(matchId);
+    setMatchEvents((prev) => ({ ...prev, [matchId]: null }));
+    getMatchDetail(matchId)
+      .then((detail) => {
+        setMatchEvents((prev) => ({ ...prev, [matchId]: detail.events }));
+      })
+      .catch(() => {
+        setMatchEvents((prev) => ({ ...prev, [matchId]: [] }));
+      });
+  }
 
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     scrollY.current = event.nativeEvent.contentOffset.y;
@@ -146,7 +191,13 @@ export default function MatchScheduleScreen() {
     >
       {state.matches.map((match, index) =>
         index === currentFocus ? (
-          <GameCardFocused key={match.id} match={match} deviceTimeZone={deviceTimeZone} />
+          <GameCardFocused
+            key={match.id}
+            match={match}
+            deviceTimeZone={deviceTimeZone}
+            events={matchEvents[match.id]}
+            onReload={() => reloadEvents(match.id)}
+          />
         ) : (
           <GameCardCompact key={match.id} match={match} deviceTimeZone={deviceTimeZone} />
         ),

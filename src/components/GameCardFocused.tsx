@@ -1,12 +1,14 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import type { Match } from "../types/competition";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import type { Match, MatchEvent } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
 
 interface GameCardFocusedProps {
   match: Match;
   deviceTimeZone: string;
+  events?: MatchEvent[] | null;
+  onReload?: () => void;
 }
 
 function scoreText(match: Match): string {
@@ -17,9 +19,32 @@ function scoreText(match: Match): string {
   return `${home} - ${away}`;
 }
 
-export function GameCardFocused({ match, deviceTimeZone }: GameCardFocusedProps) {
+function eventDescription(event: MatchEvent): string {
+  if (event.type === "GOAL") return `⚽ ${event.scorer}`;
+  if (event.type === "BOOKING") {
+    const icon = event.card === "YELLOW_CARD" ? "🟨" : "🟥";
+    return `${icon} ${event.player}`;
+  }
+  return `↓ ${event.playerOut} / ↑ ${event.playerIn}`;
+}
+
+function EventRow({ event }: { event: MatchEvent }) {
+  const desc = eventDescription(event);
+  const minute = `${event.minute}'`;
+  const isHome = event.team === "HOME";
+
+  return (
+    <View style={eventStyles.row}>
+      <Text style={eventStyles.homeSide}>{isHome ? `${minute} ${desc}` : ""}</Text>
+      <Text style={eventStyles.awaySide}>{!isHome ? `${desc} ${minute}` : ""}</Text>
+    </View>
+  );
+}
+
+export function GameCardFocused({ match, deviceTimeZone, events, onReload }: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
+  const showReload = events !== undefined;
 
   return (
     <View testID="focused-card" style={styles.card}>
@@ -28,6 +53,17 @@ export function GameCardFocused({ match, deviceTimeZone }: GameCardFocusedProps)
         <Text style={styles.vs}>vs</Text>
         <Text style={styles.teamName}>{match.awayTeam}</Text>
       </View>
+
+      {showReload && (
+        <TouchableOpacity
+          testID="reload-button"
+          onPress={onReload}
+          style={styles.reloadButton}
+          accessibilityLabel="Reload events"
+        >
+          <Text style={styles.reloadIcon}>🔄</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.badgeRow}>
         <Text style={styles.badge}>{label}</Text>
@@ -51,6 +87,24 @@ export function GameCardFocused({ match, deviceTimeZone }: GameCardFocusedProps)
           </Text>
         )}
       </View>
+
+      {events === null && (
+        <ActivityIndicator
+          testID="events-loading"
+          size="small"
+          color="#f0a500"
+          style={styles.eventsLoading}
+        />
+      )}
+
+      {Array.isArray(events) && events.length > 0 && (
+        <View testID="events-list" style={styles.eventsList}>
+          {events.map((event, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: events are ordered and stable
+            <EventRow key={i} event={event} />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -88,6 +142,14 @@ const styles = StyleSheet.create({
     color: "#888888",
     fontSize: 12,
     marginHorizontal: 8,
+  },
+  reloadButton: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+  },
+  reloadIcon: {
+    fontSize: 16,
   },
   badgeRow: {
     flexDirection: "row",
@@ -136,5 +198,33 @@ const styles = StyleSheet.create({
     color: "#888888",
     fontSize: 11,
     marginTop: 2,
+  },
+  eventsLoading: {
+    marginTop: 12,
+  },
+  eventsList: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#333355",
+    paddingTop: 8,
+  },
+});
+
+const eventStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 3,
+  },
+  homeSide: {
+    color: "#dddddd",
+    fontSize: 12,
+    flex: 1,
+  },
+  awaySide: {
+    color: "#dddddd",
+    fontSize: 12,
+    flex: 1,
+    textAlign: "right",
   },
 });
