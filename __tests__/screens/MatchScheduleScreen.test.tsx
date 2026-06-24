@@ -11,6 +11,26 @@ import { getMatchDetail } from "../../src/services/matchDetailService";
 import { getTeamCrests } from "../../src/services/teamService";
 import type { Match, MatchEvent } from "../../src/types/competition";
 
+// biome-ignore lint/style/noVar: var required so jest.mock factory hoisting can close over it before module evaluation
+var mockScrollTo = jest.fn();
+
+jest.mock("react-native-reanimated", () => {
+  const ReactInFactory = require("react");
+  const actual = jest.requireActual("react-native-reanimated/mock");
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      // biome-ignore lint/suspicious/noExplicitAny: mock factory — prop and ref types not available
+      ScrollView: ReactInFactory.forwardRef(({ children, ...props }: any, ref: any) => {
+        ReactInFactory.useImperativeHandle(ref, () => ({ scrollTo: mockScrollTo }));
+        const { View } = require("react-native");
+        return ReactInFactory.createElement(View, props, children);
+      }),
+    },
+  };
+});
+
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ id: "WC" }),
 }));
@@ -456,5 +476,77 @@ describe("MatchScheduleScreen", () => {
       // Index 0 after sort is finishedA (earlier date)
       expect(screen.getByTestId("focused-8")).toBeTruthy();
     });
+  });
+});
+
+describe("Now button scroll behaviour", () => {
+  beforeEach(() => {
+    mockScrollTo.mockClear();
+  });
+
+  it("scrolls to a positive y offset when Now is pressed and target card is not at index 0", async () => {
+    // Sorted: MATCH_FINISHED (Jun10 15:00), MATCH_C (Jun10 17:00), MATCH_ONGOING (Jun11 20:00), MATCH_B (Jun14)
+    (getMatches as jest.Mock).mockResolvedValueOnce([
+      MATCH_B,
+      MATCH_C,
+      MATCH_ONGOING,
+      MATCH_FINISHED,
+    ]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+
+    fireEvent.press(screen.getByTestId("now-button"));
+
+    await waitFor(() => {
+      const scrollCalls = mockScrollTo.mock.calls.filter((call) => call[0]?.animated === true);
+      expect(scrollCalls.length).toBeGreaterThan(0);
+      const yValues = scrollCalls.map((call) => call[0]?.y ?? 0);
+      expect(Math.max(...yValues)).toBeGreaterThan(0);
+    });
+  });
+
+  it("scrollTo is called with the same y value on repeated Now presses", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([
+      MATCH_B,
+      MATCH_C,
+      MATCH_ONGOING,
+      MATCH_FINISHED,
+    ]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+
+    fireEvent.press(screen.getByTestId("now-button"));
+    await waitFor(() => expect(mockScrollTo).toHaveBeenCalled());
+    mockScrollTo.mockClear();
+
+    fireEvent.press(screen.getByTestId("now-button"));
+    await waitFor(() => expect(mockScrollTo).toHaveBeenCalled());
+
+    const yValues = mockScrollTo.mock.calls
+      .filter((call) => call[0]?.animated === true)
+      .map((call) => call[0]?.y ?? 0);
+    const allSame = yValues.every((y) => y === yValues[0]);
+    expect(allSame).toBe(true);
+  });
+
+  it("does not call scrollTo with y=0 (animated) when Now targets a card beyond index 0", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([
+      MATCH_B,
+      MATCH_C,
+      MATCH_ONGOING,
+      MATCH_FINISHED,
+    ]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+
+    mockScrollTo.mockClear();
+    fireEvent.press(screen.getByTestId("now-button"));
+
+    await waitFor(() => expect(mockScrollTo).toHaveBeenCalled());
+
+    const animatedZeroCalls = mockScrollTo.mock.calls.filter(
+      (call) => call[0]?.animated === true && call[0]?.y === 0,
+    );
+    expect(animatedZeroCalls.length).toBe(0);
   });
 });
