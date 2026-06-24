@@ -5,7 +5,9 @@
 # Paths are repo-relative (e.g. docs/TECHNICAL_PRODUCT_SPECIFICATION.md).
 
 EXCLUDE_FILES=(
-  # docs/TECHNICAL_PRODUCT_SPECIFICATION.md
+  # Add files to exclude here, one per line (repo-relative paths).
+  # Example — uncomment to exclude a large file from dumps:
+  # docs/conference/presentation.html
 )
 
 # --- Do not edit below this line ---
