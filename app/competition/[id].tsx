@@ -1,6 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -43,6 +50,14 @@ function errorMessage(err: unknown): string {
     return `Server error (${err.statusCode}). Please try again later.`;
   }
   return "An unexpected error occurred.";
+}
+
+function smartFocusIndex(matches: Match[]): number {
+  const ongoingIdx = matches.findIndex((m) => gameStateLabel(m.status) === "ONGOING");
+  if (ongoingIdx !== -1) return ongoingIdx;
+  const upcomingIdx = matches.findIndex((m) => gameStateLabel(m.status) === "UPCOMING");
+  if (upcomingIdx !== -1) return upcomingIdx;
+  return 0;
 }
 
 function computeScrollOffset(focusIdx: number, layouts: Record<number, CardLayout>): number {
@@ -151,9 +166,7 @@ export default function MatchScheduleScreen() {
     getMatches(id)
       .then((matches) => {
         const sorted = [...matches].sort((a, b) => a.utcDate.localeCompare(b.utcDate));
-        const ongoingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "ONGOING");
-        const upcomingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "UPCOMING");
-        const initialFocus = ongoingIdx !== -1 ? ongoingIdx : upcomingIdx !== -1 ? upcomingIdx : 0;
+        const initialFocus = smartFocusIndex(sorted);
         matchCountRef.current = sorted.length;
         setCurrentFocus(initialFocus);
         setState({ status: "success", matches: sorted });
@@ -202,6 +215,17 @@ export default function MatchScheduleScreen() {
     });
   }, [currentFocus, state.status]);
 
+  const handleNow = useCallback(() => {
+    if (state.status !== "success") return;
+    const nowIndex = smartFocusIndex(state.matches);
+    currentFocusRef.current = nowIndex;
+    setCurrentFocus(nowIndex);
+    scrollViewRef.current?.scrollTo({
+      y: computeScrollOffset(nowIndex, cardLayouts.current),
+      animated: true,
+    });
+  }, [state]);
+
   if (state.status === "loading") {
     return (
       <View style={styles.centered}>
@@ -219,54 +243,86 @@ export default function MatchScheduleScreen() {
   }
 
   return (
-    <Animated.ScrollView
-      ref={scrollViewRef}
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      onScroll={scrollHandler}
-      scrollEventThrottle={16}
-      showsVerticalScrollIndicator={true}
-    >
-      {state.matches.map((match, index) => (
-        <CardWrapper
-          key={match.id}
-          scrollY={scrollY}
-          screenH={screenH}
-          onMeasured={(y, height) => {
-            cardLayouts.current[index] = { y, height };
-          }}
-        >
-          {index === currentFocus ? (
-            <GameCardFocused
-              match={match}
-              deviceTimeZone={deviceTimeZone}
-              events={matchEvents[match.id]}
-              homeCrest={crests[match.homeTeam]}
-              awayCrest={crests[match.awayTeam]}
-            />
-          ) : (
-            <GameCardCompact
-              match={match}
-              deviceTimeZone={deviceTimeZone}
-              homeCrest={crests[match.homeTeam]}
-              awayCrest={crests[match.awayTeam]}
-              onPress={() => {
-                currentFocusRef.current = index;
-                setCurrentFocus(index);
-                scrollViewRef.current?.scrollTo({
-                  y: computeScrollOffset(index, cardLayouts.current),
-                  animated: true,
-                });
-              }}
-            />
-          )}
-        </CardWrapper>
-      ))}
-    </Animated.ScrollView>
+    <View style={styles.screen}>
+      <View testID="top-bar" style={styles.topBar}>
+        <TouchableOpacity testID="now-button" style={styles.nowButton} onPress={handleNow}>
+          <Text style={styles.nowButtonText}>Now</Text>
+        </TouchableOpacity>
+      </View>
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={true}
+      >
+        {state.matches.map((match, index) => (
+          <CardWrapper
+            key={match.id}
+            scrollY={scrollY}
+            screenH={screenH}
+            onMeasured={(y, height) => {
+              cardLayouts.current[index] = { y, height };
+            }}
+          >
+            {index === currentFocus ? (
+              <GameCardFocused
+                match={match}
+                deviceTimeZone={deviceTimeZone}
+                events={matchEvents[match.id]}
+                homeCrest={crests[match.homeTeam]}
+                awayCrest={crests[match.awayTeam]}
+              />
+            ) : (
+              <GameCardCompact
+                match={match}
+                deviceTimeZone={deviceTimeZone}
+                homeCrest={crests[match.homeTeam]}
+                awayCrest={crests[match.awayTeam]}
+                onPress={() => {
+                  currentFocusRef.current = index;
+                  setCurrentFocus(index);
+                  scrollViewRef.current?.scrollTo({
+                    y: computeScrollOffset(index, cardLayouts.current),
+                    animated: true,
+                  });
+                }}
+              />
+            )}
+          </CardWrapper>
+        ))}
+      </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#0a0a1a",
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1a1a3a",
+  },
+  nowButton: {
+    backgroundColor: "#f0a500",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  nowButtonText: {
+    color: "#0a0a1a",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
   centered: {
     flex: 1,
     alignItems: "center",
