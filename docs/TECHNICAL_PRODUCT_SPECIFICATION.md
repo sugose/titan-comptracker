@@ -98,6 +98,44 @@ Does not display scores in this iteration.
 
 ---
 
+## Match Schedule Screen — Carousel Behaviour
+
+### Overview
+The match schedule screen renders matches as a vertical carousel. The card currently centred on screen is "in focus". All other cards are "out of focus". Scrolling is smooth and continuous — no hard paging. A vertical scrollbar is visible on the right edge.
+
+### Out of Focus Card
+Compact size — narrower and shorter than the focused card. Displays:
+- Home team (left) vs Away team (right)
+- Kick-off time in device local time zone
+- Game state badge: UPCOMING / ONGOING / FINISHED (mapped from API status values)
+- Score: shown if game state is ONGOING or FINISHED; hidden if UPCOMING
+
+### In Focus Card
+Full horizontal width. Height determined by content. Displays everything the out-of-focus card shows, plus additional fields to be specified in a future PBI. Visual treatment: a "magnifying glass" effect — the card scales up and gains a visual depth treatment (subtle shadow, border glow, or scale transform) that distinguishes it from surrounding cards.
+
+### Scroll Behaviour
+- Smooth continuous scrolling — no snap/paging
+- Card in the vertical centre of the visible area is considered "in focus"
+- As the user scrolls, focus transitions smoothly between cards
+- Out-of-focus cards peek above and below the focused card
+
+### Game State Mapping
+
+| API status | Display label |
+|---|---|
+| SCHEDULED | UPCOMING |
+| TIMED | UPCOMING |
+| IN_PLAY | ONGOING |
+| PAUSED | ONGOING |
+| LIVE | ONGOING |
+| FINISHED | FINISHED |
+| POSTPONED | POSTPONED |
+| CANCELLED | CANCELLED |
+| SUSPENDED | SUSPENDED |
+| Unknown | raw value |
+
+---
+
 ## Known Unknowns
 
 - football-data.org free tier rate limit: 10 requests/minute. The schedule screen loads once on mount — this should be well within limits, but error handling for `RateLimitError` must be present from day one.
