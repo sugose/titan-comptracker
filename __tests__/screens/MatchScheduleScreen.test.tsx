@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import React from "react";
+import { Animated } from "react-native";
 import MatchScheduleScreen from "../../app/competition/[id]";
 import {
   ApiError,
@@ -34,11 +35,13 @@ jest.mock("../../src/components/GameCardCompact", () => ({
     homeCrest,
     awayCrest,
     onPress,
+    scaleValue,
   }: {
     match: Match;
     homeCrest?: string;
     awayCrest?: string;
     onPress?: () => void;
+    scaleValue?: unknown;
   }) => {
     const { TouchableOpacity, Text } = require("react-native");
     return (
@@ -48,23 +51,28 @@ jest.mock("../../src/components/GameCardCompact", () => ({
         </Text>
         {homeCrest && <Text testID={`compact-home-crest-${match.id}`}>{homeCrest}</Text>}
         {awayCrest && <Text testID={`compact-away-crest-${match.id}`}>{awayCrest}</Text>}
+        {scaleValue !== undefined && (
+          <Text testID={`compact-has-scale-${match.id}`}>has-scale</Text>
+        )}
       </TouchableOpacity>
     );
   },
 }));
 
-// Capture events and crest props so tests can inspect them via testID
+// Capture events, crest, and scaleValue props so tests can inspect them via testID
 jest.mock("../../src/components/GameCardFocused", () => ({
   GameCardFocused: ({
     match,
     events,
     homeCrest,
     awayCrest,
+    scaleValue,
   }: {
     match: Match;
     events?: MatchEvent[] | null;
     homeCrest?: string;
     awayCrest?: string;
+    scaleValue?: unknown;
   }) => {
     const { View, Text } = require("react-native");
     return (
@@ -78,6 +86,9 @@ jest.mock("../../src/components/GameCardFocused", () => ({
         )}
         {homeCrest && <Text testID={`focused-home-crest-${match.id}`}>{homeCrest}</Text>}
         {awayCrest && <Text testID={`focused-away-crest-${match.id}`}>{awayCrest}</Text>}
+        {scaleValue !== undefined && (
+          <Text testID={`focused-has-scale-${match.id}`}>has-scale</Text>
+        )}
       </View>
     );
   },
@@ -385,5 +396,50 @@ describe("MatchScheduleScreen", () => {
       expect(screen.getByTestId("focused-1")).toBeTruthy();
       expect(screen.getByTestId("compact-3")).toBeTruthy();
     });
+  });
+
+  // Animated scale tests
+
+  it("passes scaleValue to each card after load", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_C]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      // Both cards should receive a scaleValue
+      expect(screen.getByTestId("focused-has-scale-3")).toBeTruthy();
+      expect(screen.getByTestId("compact-has-scale-1")).toBeTruthy();
+    });
+  });
+
+  it("calls Animated.parallel with two Animated.timing calls on focus change via tap", async () => {
+    const parallelSpy = jest
+      .spyOn(Animated, "parallel")
+      .mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() } as never);
+    const timingSpy = jest.spyOn(Animated, "timing").mockReturnValue({
+      start: jest.fn(),
+      stop: jest.fn(),
+      reset: jest.fn(),
+    } as never);
+
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_C]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("compact-1"));
+
+    timingSpy.mockClear();
+    parallelSpy.mockClear();
+
+    fireEvent.press(screen.getByTestId("compact-1"));
+
+    expect(parallelSpy).toHaveBeenCalledTimes(1);
+    expect(timingSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ toValue: 0.88, duration: 250, useNativeDriver: true }),
+    );
+    expect(timingSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ toValue: 1.0, duration: 250, useNativeDriver: true }),
+    );
+
+    timingSpy.mockRestore();
+    parallelSpy.mockRestore();
   });
 });

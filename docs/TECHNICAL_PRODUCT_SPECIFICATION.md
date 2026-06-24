@@ -244,6 +244,15 @@ Event display format per row: `minute'` + icon/description
 - BOOKING RED_CARD: `🟥 [player]`
 - SUBSTITUTION: `↓ [playerOut] / ↑ [playerIn]`
 
+### Animated Focus Transition
+
+When focus changes (via scroll or tap-to-focus), the old and new cards animate simultaneously:
+- Outgoing card: scale 1.0 → 0.88 over 250ms (`Animated.timing`, `useNativeDriver: true`)
+- Incoming card: scale 0.88 → 1.0 over 250ms (`Animated.timing`, `useNativeDriver: true`)
+- Both animations run in parallel via `Animated.parallel`
+
+Scale values are initialised when the match list loads: the initially focused card gets 1.0, all others 0.88. One `Animated.Value` per card is held in a ref (`scaleValues`) and passed as `scaleValue` prop to each card component. Each card wraps its root element in an `Animated.View` that applies `transform: [{ scale: scaleValue }]`.
+
 ### Scroll Behaviour
 - Smooth continuous scrolling — no snap/paging
 - Card in the vertical centre of the visible area is considered "in focus"
