@@ -1,6 +1,10 @@
 import { Dimensions } from "react-native";
 import type { CardLayout } from "../../src/utils/scrollOffset";
-import { TOP_PADDING, computeScrollOffset } from "../../src/utils/scrollOffset";
+import {
+  FALLBACK_CARD_HEIGHT,
+  TOP_PADDING,
+  computeScrollOffset,
+} from "../../src/utils/scrollOffset";
 
 beforeEach(() => {
   jest
@@ -19,8 +23,14 @@ describe("computeScrollOffset", () => {
     expect(computeScrollOffset(2, layouts)).toBe(300);
   });
 
-  it("returns 0 when no layouts measured at all", () => {
-    expect(computeScrollOffset(5, {})).toBe(0);
+  it("returns 0 for index 0 when no layouts measured at all", () => {
+    // (0 - 1) * FALLBACK + TOP_PADDING = negative → clamped to 0
+    expect(computeScrollOffset(0, {})).toBe(0);
+  });
+
+  it("returns a positive estimate for index > 1 when no layouts measured at all", () => {
+    // (5 - 1) * FALLBACK_CARD_HEIGHT + TOP_PADDING = 4 * 88 + 16 = 368
+    expect(computeScrollOffset(5, {})).toBe(4 * FALLBACK_CARD_HEIGHT + TOP_PADDING);
   });
 
   it("does NOT return 0 when target layout is unmeasured but others are", () => {
