@@ -210,7 +210,16 @@ export default function MatchScheduleScreen() {
   const handleNow = useCallback(() => {
     if (state.status !== "success") return;
     const nowIndex = smartFocusIndex(state.matches);
-    nowScrollPendingRef.current = true;
+    if (cardLayouts.current[nowIndex]) {
+      // Layout already measured — scroll immediately with real coordinates.
+      scrollViewRef.current?.scrollTo({
+        y: computeScrollOffset(nowIndex, cardLayouts.current),
+        animated: true,
+      });
+    } else {
+      // Layout not yet measured (card off-screen) — defer scroll to onMeasured.
+      nowScrollPendingRef.current = true;
+    }
     currentFocusRef.current = nowIndex;
     setCurrentFocus(nowIndex);
   }, [state]);

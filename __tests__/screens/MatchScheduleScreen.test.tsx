@@ -17,6 +17,11 @@ var mockScrollTo = jest.fn();
 jest.mock("react-native-reanimated", () => {
   const ReactInFactory = require("react");
   const actual = jest.requireActual("react-native-reanimated/mock");
+  // Counter lives in the factory closure — increments across all test renders.
+  // Each CardWrapper instance gets a unique, stable mountIndex so its y is distinct.
+  // The counter never resets, but card at position 2 always has mountIndex ≥ 2,
+  // giving y ≥ 416, which puts it above viewportH/2 (400) so computeScrollOffset > 0.
+  let mountCounter = 0;
   return {
     ...actual,
     default: {
@@ -26,6 +31,24 @@ jest.mock("react-native-reanimated", () => {
         ReactInFactory.useImperativeHandle(ref, () => ({ scrollTo: mockScrollTo }));
         const { View } = require("react-native");
         return ReactInFactory.createElement(View, props, children);
+      }),
+      // biome-ignore lint/suspicious/noExplicitAny: mock factory — prop and ref types not available
+      View: ReactInFactory.forwardRef(({ children, onLayout, style, ...props }: any, ref: any) => {
+        const { View } = require("react-native");
+        // Assign a stable index per instance (captured on first render, stable on re-renders).
+        const mountIndex = ReactInFactory.useRef(-1);
+        if (mountIndex.current === -1) {
+          mountIndex.current = mountCounter++;
+        }
+        ReactInFactory.useEffect(() => {
+          if (onLayout) {
+            // Space cards 200px apart so card at position ≥ 2 has centre above viewportH/2 (400),
+            // making computeScrollOffset return y > 0 for the ONGOING card.
+            const y = 16 + mountIndex.current * 200;
+            onLayout({ nativeEvent: { layout: { x: 0, y, width: 390, height: 80 } } });
+          }
+        }, []);
+        return ReactInFactory.createElement(View, { ...props, style, ref }, children);
       }),
     },
   };
@@ -455,7 +478,7 @@ describe("MatchScheduleScreen", () => {
 
   it("tapping Now when target card layout is not measured does not scroll to top (focus changes correctly)", async () => {
     // Sorted: MATCH_FINISHED(id5,Jun10 15:00), MATCH_A(id1,Jun11 19:00), MATCH_ONGOING(id4,Jun11 20:00)
-    // ONGOING is at index 2; cardLayouts will be empty in test env (no onLayout fires in RNTL)
+    // ONGOING is at index 2; Animated.View mock fires onLayout so layouts are pre-populated
     (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_FINISHED, MATCH_A, MATCH_ONGOING]);
     render(<MatchScheduleScreen />);
     await waitFor(() => screen.getByTestId("now-button"));
