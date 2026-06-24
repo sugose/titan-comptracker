@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { Match } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
@@ -13,6 +13,7 @@ interface GameCardCompactProps {
   homeCrest?: string;
   awayCrest?: string;
   onPress?: () => void;
+  scaleValue?: Animated.Value;
 }
 
 function scoreText(match: Match): string {
@@ -29,52 +30,55 @@ export function GameCardCompact({
   homeCrest,
   awayCrest,
   onPress,
+  scaleValue,
 }: GameCardCompactProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
 
   return (
-    <TouchableOpacity testID="compact-card" style={styles.card} onPress={onPress}>
-      <View style={styles.teams}>
-        <View style={styles.teamSide}>
-          {homeCrest && (
-            <Image
-              testID="home-crest"
-              source={{ uri: homeCrest }}
-              style={styles.crest}
-              contentFit="contain"
-            />
-          )}
-          <Text style={styles.teamName} numberOfLines={1}>
-            {match.homeTeam}
-          </Text>
+    <Animated.View style={{ transform: [{ scale: scaleValue ?? 0.88 }] }}>
+      <TouchableOpacity testID="compact-card" style={styles.card} onPress={onPress}>
+        <View style={styles.teams}>
+          <View style={styles.teamSide}>
+            {homeCrest && (
+              <Image
+                testID="home-crest"
+                source={{ uri: homeCrest }}
+                style={styles.crest}
+                contentFit="contain"
+              />
+            )}
+            <Text style={styles.teamName} numberOfLines={1}>
+              {match.homeTeam}
+            </Text>
+          </View>
+          <Text style={styles.vs}>vs</Text>
+          <View style={[styles.teamSide, styles.teamSideAway]}>
+            <Text style={styles.teamName} numberOfLines={1}>
+              {match.awayTeam}
+            </Text>
+            {awayCrest && (
+              <Image
+                testID="away-crest"
+                source={{ uri: awayCrest }}
+                style={styles.crest}
+                contentFit="contain"
+              />
+            )}
+          </View>
         </View>
-        <Text style={styles.vs}>vs</Text>
-        <View style={[styles.teamSide, styles.teamSideAway]}>
-          <Text style={styles.teamName} numberOfLines={1}>
-            {match.awayTeam}
-          </Text>
-          {awayCrest && (
-            <Image
-              testID="away-crest"
-              source={{ uri: awayCrest }}
-              style={styles.crest}
-              contentFit="contain"
-            />
-          )}
-        </View>
-      </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.time}>{kickOffDeviceTime}</Text>
-        <Text style={styles.badge}>{label}</Text>
-        {showScore(label) && (
-          <Text testID="compact-score" style={styles.score}>
-            {scoreText(match)}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
+        <View style={styles.footer}>
+          <Text style={styles.time}>{kickOffDeviceTime}</Text>
+          <Text style={styles.badge}>{label}</Text>
+          {showScore(label) && (
+            <Text testID="compact-score" style={styles.score}>
+              {scoreText(match)}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

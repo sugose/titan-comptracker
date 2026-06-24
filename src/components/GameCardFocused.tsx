@@ -1,6 +1,13 @@
 import { Image } from "expo-image";
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import type { Match, MatchEvent } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
@@ -14,6 +21,7 @@ interface GameCardFocusedProps {
   onReload?: () => void;
   homeCrest?: string;
   awayCrest?: string;
+  scaleValue?: Animated.Value;
 }
 
 function scoreText(match: Match): string {
@@ -53,91 +61,94 @@ export function GameCardFocused({
   onReload,
   homeCrest,
   awayCrest,
+  scaleValue,
 }: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
   const showReload = events !== undefined;
 
   return (
-    <View testID="focused-card" style={styles.card}>
-      <View style={styles.teams}>
-        <View style={styles.teamSide}>
-          {homeCrest && (
-            <Image
-              testID="home-crest"
-              source={{ uri: homeCrest }}
-              style={styles.crest}
-              contentFit="contain"
-            />
-          )}
-          <Text style={styles.teamName}>{match.homeTeam}</Text>
+    <Animated.View style={{ transform: [{ scale: scaleValue ?? 1.0 }] }}>
+      <View testID="focused-card" style={styles.card}>
+        <View style={styles.teams}>
+          <View style={styles.teamSide}>
+            {homeCrest && (
+              <Image
+                testID="home-crest"
+                source={{ uri: homeCrest }}
+                style={styles.crest}
+                contentFit="contain"
+              />
+            )}
+            <Text style={styles.teamName}>{match.homeTeam}</Text>
+          </View>
+          <Text style={styles.vs}>vs</Text>
+          <View style={[styles.teamSide, styles.teamSideAway]}>
+            <Text style={styles.teamName}>{match.awayTeam}</Text>
+            {awayCrest && (
+              <Image
+                testID="away-crest"
+                source={{ uri: awayCrest }}
+                style={styles.crest}
+                contentFit="contain"
+              />
+            )}
+          </View>
         </View>
-        <Text style={styles.vs}>vs</Text>
-        <View style={[styles.teamSide, styles.teamSideAway]}>
-          <Text style={styles.teamName}>{match.awayTeam}</Text>
-          {awayCrest && (
-            <Image
-              testID="away-crest"
-              source={{ uri: awayCrest }}
-              style={styles.crest}
-              contentFit="contain"
-            />
+
+        {showReload && (
+          <TouchableOpacity
+            testID="reload-button"
+            onPress={onReload}
+            style={styles.reloadButton}
+            accessibilityLabel="Reload events"
+          >
+            <Text style={styles.reloadIcon}>🔄</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.badgeRow}>
+          <Text style={styles.badge}>{label}</Text>
+          {showScore(label) && (
+            <Text testID="focused-score" style={styles.score}>
+              {scoreText(match)}
+            </Text>
           )}
         </View>
-      </View>
 
-      {showReload && (
-        <TouchableOpacity
-          testID="reload-button"
-          onPress={onReload}
-          style={styles.reloadButton}
-          accessibilityLabel="Reload events"
-        >
-          <Text style={styles.reloadIcon}>🔄</Text>
-        </TouchableOpacity>
-      )}
+        <View style={styles.times}>
+          <Text style={styles.timeLabel}>Your time</Text>
+          <Text style={styles.timeValue}>{kickOffDeviceTime}</Text>
+        </View>
 
-      <View style={styles.badgeRow}>
-        <Text style={styles.badge}>{label}</Text>
-        {showScore(label) && (
-          <Text testID="focused-score" style={styles.score}>
-            {scoreText(match)}
-          </Text>
+        <View style={styles.venue}>
+          <Text style={styles.venueName}>{match.venue.name}</Text>
+          {(match.venue.city || match.venue.country) && (
+            <Text style={styles.venueLocation}>
+              {[match.venue.city, match.venue.country].filter(Boolean).join(", ")}
+            </Text>
+          )}
+        </View>
+
+        {events === null && (
+          <ActivityIndicator
+            testID="events-loading"
+            size="small"
+            color="#f0a500"
+            style={styles.eventsLoading}
+          />
+        )}
+
+        {Array.isArray(events) && events.length > 0 && (
+          <View testID="events-list" style={styles.eventsList}>
+            {events.map((event, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: events are ordered and stable
+              <EventRow key={i} event={event} />
+            ))}
+          </View>
         )}
       </View>
-
-      <View style={styles.times}>
-        <Text style={styles.timeLabel}>Your time</Text>
-        <Text style={styles.timeValue}>{kickOffDeviceTime}</Text>
-      </View>
-
-      <View style={styles.venue}>
-        <Text style={styles.venueName}>{match.venue.name}</Text>
-        {(match.venue.city || match.venue.country) && (
-          <Text style={styles.venueLocation}>
-            {[match.venue.city, match.venue.country].filter(Boolean).join(", ")}
-          </Text>
-        )}
-      </View>
-
-      {events === null && (
-        <ActivityIndicator
-          testID="events-loading"
-          size="small"
-          color="#f0a500"
-          style={styles.eventsLoading}
-        />
-      )}
-
-      {Array.isArray(events) && events.length > 0 && (
-        <View testID="events-list" style={styles.eventsList}>
-          {events.map((event, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: events are ordered and stable
-            <EventRow key={i} event={event} />
-          ))}
-        </View>
-      )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -155,7 +166,6 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 1,
     borderColor: "#334488",
-    transform: [{ scale: 1.0 }],
   },
   teams: {
     flexDirection: "row",

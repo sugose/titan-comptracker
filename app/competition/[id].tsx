@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -93,6 +94,8 @@ export default function MatchScheduleScreen() {
   const [crests, setCrests] = useState<Record<string, string>>({});
   const fetchedIds = useRef<Set<number>>(new Set());
   const snapEnabled = useRef(false);
+  const scaleValues = useRef<Animated.Value[]>([]);
+  const [scaleValuesReady, setScaleValuesReady] = useState(false);
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const scrollY = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -128,6 +131,15 @@ export default function MatchScheduleScreen() {
 
   React.useEffect(() => {
     if (state.status !== "success") return;
+    if (scaleValues.current.length === state.matches.length) return;
+    scaleValues.current = state.matches.map(
+      (_, i) => new Animated.Value(i === currentFocus ? 1.0 : 0.88),
+    );
+    setScaleValuesReady(true);
+  }, [state, currentFocus]);
+
+  React.useEffect(() => {
+    if (state.status !== "success") return;
     const match = state.matches[currentFocus];
     if (!match) return;
     const label = gameStateLabel(match.status);
@@ -150,6 +162,24 @@ export default function MatchScheduleScreen() {
     scrollViewRef.current?.scrollTo({ y: computeScrollOffset(currentFocus), animated: true });
   }, [currentFocus, state.status]);
 
+  function animateFocusChange(next: number) {
+    if (scaleValues.current.length > 0) {
+      Animated.parallel([
+        Animated.timing(scaleValues.current[currentFocus], {
+          toValue: 0.88,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleValues.current[next], {
+          toValue: 1.0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    setCurrentFocus(next);
+  }
+
   function reloadEvents(matchId: number) {
     fetchedIds.current.delete(matchId);
     setMatchEvents((prev) => ({ ...prev, [matchId]: null }));
@@ -166,7 +196,7 @@ export default function MatchScheduleScreen() {
     scrollY.current = event.nativeEvent.contentOffset.y;
     if (state.status !== "success") return;
     const next = focusedIndex(scrollY.current, state.matches, currentFocus);
-    if (next !== currentFocus) setCurrentFocus(next);
+    if (next !== currentFocus) animateFocusChange(next);
   }
 
   if (state.status === "loading") {
@@ -205,6 +235,7 @@ export default function MatchScheduleScreen() {
             onReload={() => reloadEvents(match.id)}
             homeCrest={crests[match.homeTeam]}
             awayCrest={crests[match.awayTeam]}
+            scaleValue={scaleValues.current[index]}
           />
         ) : (
           <GameCardCompact
@@ -213,7 +244,8 @@ export default function MatchScheduleScreen() {
             deviceTimeZone={deviceTimeZone}
             homeCrest={crests[match.homeTeam]}
             awayCrest={crests[match.awayTeam]}
-            onPress={() => setCurrentFocus(index)}
+            onPress={() => animateFocusChange(index)}
+            scaleValue={scaleValues.current[index]}
           />
         ),
       )}

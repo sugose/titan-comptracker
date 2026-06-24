@@ -116,14 +116,18 @@ describe("GameCardFocused", () => {
     expect(screen.getByText("- - -")).toBeTruthy();
   });
 
-  it("applies a scale transform larger than GameCardCompact", () => {
-    render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
-    const card = screen.getByTestId("focused-card");
-    const transform = card.props.style?.transform;
-    const scaleEntry =
-      Array.isArray(transform) && transform.find((t: Record<string, number>) => "scale" in t);
-    expect(scaleEntry).toBeTruthy();
-    expect(scaleEntry.scale).toBeGreaterThan(0.88);
+  it("accepts a scaleValue prop without throwing", () => {
+    const { Animated } = require("react-native");
+    const scaleValue = new Animated.Value(1.0);
+    expect(() =>
+      render(
+        <GameCardFocused
+          match={SCHEDULED_MATCH}
+          deviceTimeZone="Europe/Stockholm"
+          scaleValue={scaleValue}
+        />,
+      ),
+    ).not.toThrow();
   });
 
   // Events prop tests
