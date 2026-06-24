@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 import { GameCardFocused } from "../../src/components/GameCardFocused";
 import type { Match, MatchEvent } from "../../src/types/competition";
@@ -228,5 +228,57 @@ describe("GameCardFocused", () => {
       Number.parseInt(el.props.children.replace("'", ""), 10),
     );
     expect(minutes).toEqual([...minutes].sort((a, b) => a - b));
+  });
+
+  // onReload button tests
+
+  it("shows reload button when events is not undefined (null)", () => {
+    render(
+      <GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" events={null} />,
+    );
+    expect(screen.getByTestId("reload-button")).toBeTruthy();
+  });
+
+  it("shows reload button when events is an empty array", () => {
+    render(
+      <GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" events={[]} />,
+    );
+    expect(screen.getByTestId("reload-button")).toBeTruthy();
+  });
+
+  it("shows reload button when events has items", () => {
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[GOAL_HOME]}
+      />,
+    );
+    expect(screen.getByTestId("reload-button")).toBeTruthy();
+  });
+
+  it("does not show reload button when events is undefined", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={undefined}
+      />,
+    );
+    expect(screen.queryByTestId("reload-button")).toBeNull();
+  });
+
+  it("calls onReload when reload button is tapped", () => {
+    const onReload = jest.fn();
+    render(
+      <GameCardFocused
+        match={FINISHED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        events={[GOAL_HOME]}
+        onReload={onReload}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("reload-button"));
+    expect(onReload).toHaveBeenCalledTimes(1);
   });
 });

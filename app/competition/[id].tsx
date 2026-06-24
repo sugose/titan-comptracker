@@ -132,6 +132,18 @@ export default function MatchScheduleScreen() {
       });
   }, [currentFocus, state]);
 
+  function reloadEvents(matchId: number) {
+    fetchedIds.current.delete(matchId);
+    setMatchEvents((prev) => ({ ...prev, [matchId]: null }));
+    getMatchDetail(matchId)
+      .then((detail) => {
+        setMatchEvents((prev) => ({ ...prev, [matchId]: detail.events }));
+      })
+      .catch(() => {
+        setMatchEvents((prev) => ({ ...prev, [matchId]: [] }));
+      });
+  }
+
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     scrollY.current = event.nativeEvent.contentOffset.y;
     if (state.status !== "success") return;
@@ -172,6 +184,7 @@ export default function MatchScheduleScreen() {
             match={match}
             deviceTimeZone={deviceTimeZone}
             events={matchEvents[match.id]}
+            onReload={() => reloadEvents(match.id)}
           />
         ) : (
           <GameCardCompact key={match.id} match={match} deviceTimeZone={deviceTimeZone} />
