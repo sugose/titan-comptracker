@@ -26,6 +26,7 @@ src/
     competitionService.ts  # football-data.org competitions API client
     footballDataService.ts # football-data.org matches API client
     matchDetailService.ts  # football-data.org single match detail API client
+    teamService.ts         # football-data.org team crest lookup
   types/
     competition.ts        # Competition, Season, Match, Venue types
   utils/
@@ -42,11 +43,21 @@ src/
 5. MatchScheduleScreen calls `footballDataService.getMatches(competitionCode)` on mount
 6. Response is typed, validated, and returned as `Match[]`
 7. Screen renders a vertical carousel of `GameCardFocused` / `GameCardCompact` components, sorted by UTC kick-off time ascending, with smart initial focus (ONGOING → UPCOMING → index 0)
-8. When the focused card is ONGOING or FINISHED, the screen fetches `matchDetailService.getMatchDetail(matchId)` and passes events to `GameCardFocused`
+8. On mount, the screen also calls `teamService.getTeamCrests(competitionCode)` to fetch team crest URLs; errors are silently ignored (crests are supplementary)
+9. When the focused card is ONGOING or FINISHED, the screen fetches `matchDetailService.getMatchDetail(matchId)` and passes events to `GameCardFocused`
 
 ---
 
 ## Component Specs
+
+### `teamService.getTeamCrests(competitionCode: string): Promise<Record<string, string>>`
+
+- Fetches team list from `GET /v4/competitions/{competitionCode}/teams`
+- Sets request header `X-Auth-Token: <EXPO_PUBLIC_API_KEY>`
+- Inspects rate limit headers (same pattern as `footballDataService`)
+- Returns `Record<teamName, crestUrl>` — maps `teams[].name` → `teams[].crest`
+- Teams with null or undefined crest are omitted from the record
+- Throws `RateLimitError`, `NetworkError`, `ApiError` on failure
 
 ### `matchDetailService.getMatchDetail(matchId: number): Promise<MatchDetail>`
 
@@ -195,15 +206,24 @@ The match schedule screen renders matches as a vertical carousel. The card curre
 
 ### Out of Focus Card
 Compact size — narrower and shorter than the focused card. Displays:
-- Home team (left) vs Away team (right)
+- Home team crest (if available) + home team name (left)
+- Away team name + away team crest (if available) (right)
 - Kick-off time in device local time zone
 - Game state badge: UPCOMING / ONGOING / FINISHED (mapped from API status values)
 - Score: shown if game state is ONGOING or FINISHED; hidden if UPCOMING
+- Tapping the card sets it as the focused card (tap-to-focus), which triggers snap-to-centre
+
+Props: `homeCrest?: string`, `awayCrest?: string`, `onPress?: () => void`
 
 ### In Focus Card
 Full horizontal width. Height determined by content. Displays everything the out-of-focus card shows, plus:
 - Venue name, city, country
 - Match events (goals, bookings, substitutions) for ONGOING and FINISHED matches
+- Reload button (🔄) in the top-right corner when events have been fetched
+
+Props: `homeCrest?: string`, `awayCrest?: string`
+
+Crest display: team crest image (20×20, resizeMode="contain") next to each team name. Home crest is left of the home team name; away crest is right of the away team name. If no crest URL is provided, the image is omitted (no placeholder).
 
 Visual treatment: a "magnifying glass" effect — the card scales up and gains a visual depth treatment (subtle shadow, border glow, or scale transform) that distinguishes it from surrounding cards.
 

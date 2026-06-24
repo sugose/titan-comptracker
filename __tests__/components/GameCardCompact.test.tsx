@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 import { GameCardCompact } from "../../src/components/GameCardCompact";
 import type { Match } from "../../src/types/competition";
@@ -110,5 +110,60 @@ describe("GameCardCompact", () => {
     render(<GameCardCompact match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
     expect(screen.queryByText("Azteca")).toBeNull();
     expect(screen.queryByText(/Mexico City/)).toBeNull();
+  });
+
+  // Crest tests
+
+  it("renders home crest image when homeCrest is provided", () => {
+    render(
+      <GameCardCompact
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        homeCrest="https://example.com/mexico.png"
+      />,
+    );
+    expect(screen.getByTestId("home-crest")).toBeTruthy();
+  });
+
+  it("renders away crest image when awayCrest is provided", () => {
+    render(
+      <GameCardCompact
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        awayCrest="https://example.com/usa.png"
+      />,
+    );
+    expect(screen.getByTestId("away-crest")).toBeTruthy();
+  });
+
+  it("does not render home crest when homeCrest is not provided", () => {
+    render(<GameCardCompact match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.queryByTestId("home-crest")).toBeNull();
+  });
+
+  it("does not render away crest when awayCrest is not provided", () => {
+    render(<GameCardCompact match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.queryByTestId("away-crest")).toBeNull();
+  });
+
+  // onPress / tap-to-focus tests
+
+  it("calls onPress when card is tapped", () => {
+    const onPress = jest.fn();
+    render(
+      <GameCardCompact
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        onPress={onPress}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("compact-card"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not throw when card is rendered without onPress", () => {
+    expect(() =>
+      render(<GameCardCompact match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />),
+    ).not.toThrow();
   });
 });
