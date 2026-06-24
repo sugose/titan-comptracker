@@ -12,6 +12,7 @@ const MOCK_API_MATCH = {
   venue: "Estadio Azteca",
   homeTeam: { id: 10, name: "Mexico" },
   awayTeam: { id: 20, name: "USA" },
+  score: { fullTime: { home: null, away: null } },
 };
 
 function makeMockResponse(
@@ -174,5 +175,36 @@ describe("getMatches", () => {
     const matches = await getMatches("WC");
     expect(matches).toHaveLength(2);
     expect(matches[1].homeTeam).toBe("Brazil");
+  });
+
+  it("maps null fullTime scores to score with null home and away", async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce(makeMockResponse());
+
+    const matches = await getMatches("WC");
+    expect(matches[0].score).toEqual({ home: null, away: null });
+  });
+
+  it("maps numeric fullTime scores for a finished match", async () => {
+    const finishedMatch = {
+      ...MOCK_API_MATCH,
+      status: "FINISHED",
+      score: { fullTime: { home: 2, away: 1 } },
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(makeMockResponse({ body: { matches: [finishedMatch] } }));
+
+    const matches = await getMatches("WC");
+    expect(matches[0].score).toEqual({ home: 2, away: 1 });
+  });
+
+  it("leaves score undefined when API response has no score field", async () => {
+    const { score: _score, ...matchNoScore } = MOCK_API_MATCH;
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(makeMockResponse({ body: { matches: [matchNoScore] } }));
+
+    const matches = await getMatches("WC");
+    expect(matches[0].score).toBeUndefined();
   });
 });
