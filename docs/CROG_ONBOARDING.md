@@ -13,7 +13,7 @@ titan-comptracker is a mobile app built with React Native / Expo (SDK 54), targe
 | Tech Owner | Clead (Claude chat) | Architecture, specs, PR review |
 | Senior Developer | Crog (Claude Code CLI) | TDD-first implementation, git/PR workflow |
 | Product Owner | Adam | Direction, approvals, merge authority |
-| Code Reviewer | Copi (GitHub Copilot Business) | PR review via native GitHub integration |
+| Code Reviewer | Copi (suspended) | — | Not active |
 | Human Reviewer | _(optional — add when needed)_ | Specialist review as required |
 
 ---
@@ -31,17 +31,10 @@ titan-comptracker is a mobile app built with React Native / Expo (SDK 54), targe
 
 ### PR Review Rules
 
-Copi review applies to code PRs only (`src/`). Docs/tooling PRs skip Copi entirely.
+> **Note:** Copi is suspended indefinitely. Clead carries the full review load for all PR types.
 
-**Code PRs** (any PR touching files under `src/`):
-1. Open the PR
-2. Request Copi review: `gh pr edit <PR-number> --add-reviewer copilot`
-3. Wait for Copi's review to complete — poll with `gh pr view <PR-number> --json reviews` until Copi's status is not `PENDING`
-4. Only then run `bash tools/pr_dump.sh <PR-number>` and report back to Clead with the full output
+All PRs — both code PRs (touching `src/`) and docs/tooling PRs — follow the same flow:
 
-> **Note:** If `gh pr edit --add-reviewer copilot` fails (resolves as unknown user), request Copi review manually via the GitHub web UI — open the PR, click "Reviewers", and select Copilot.
-
-**Docs/tooling PRs** (only touching `docs/`, `tools/`, config files, `.github/`, root files):
 1. Open the PR
 2. Post the full pr_dump output as a PR comment:
    `gh pr comment <PR-number> --body "$(bash tools/pr_dump.sh <PR-number> --no-src)"`
@@ -140,7 +133,7 @@ You are not a passive code generator. The standard is a thoughtful senior develo
 3. Implement until tests pass (green).
 4. Lint and format before committing.
 5. Open a PR with a clear description including the test coverage narrative table.
-6. Follow the PR Review Rules above (request Copi for code PRs; skip for docs/tooling).
+6. Follow the PR Review Rules above — report to Adam in the standard format and stop.
 7. Run `bash tools/pr_dump.sh <PR-number>` (or `--no-src` for docs/tooling PRs) and report back to Clead with the full output.
 8. Never merge your own PRs.
 9. Never commit to `main`.
