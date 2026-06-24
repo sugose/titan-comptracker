@@ -150,7 +150,6 @@ const SAMPLE_EVENTS: MatchEvent[] = [
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.restoreAllMocks();
   jest.useRealTimers();
   // Default: resolve with empty events so async updates don't leak across tests
   (getMatchDetail as jest.Mock).mockResolvedValue({ events: [] });
@@ -421,26 +420,28 @@ describe("MatchScheduleScreen", () => {
       reset: jest.fn(),
     } as never);
 
-    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_C]);
-    render(<MatchScheduleScreen />);
-    await waitFor(() => screen.getByTestId("compact-1"));
+    try {
+      (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_C]);
+      render(<MatchScheduleScreen />);
+      await waitFor(() => screen.getByTestId("compact-1"));
 
-    timingSpy.mockClear();
-    parallelSpy.mockClear();
+      timingSpy.mockClear();
+      parallelSpy.mockClear();
 
-    fireEvent.press(screen.getByTestId("compact-1"));
+      fireEvent.press(screen.getByTestId("compact-1"));
 
-    expect(parallelSpy).toHaveBeenCalledTimes(1);
-    expect(timingSpy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ toValue: 0.88, duration: 250, useNativeDriver: true }),
-    );
-    expect(timingSpy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ toValue: 1.0, duration: 250, useNativeDriver: true }),
-    );
-
-    timingSpy.mockRestore();
-    parallelSpy.mockRestore();
+      expect(parallelSpy).toHaveBeenCalledTimes(1);
+      expect(timingSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ toValue: 0.88, duration: 250, useNativeDriver: true }),
+      );
+      expect(timingSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ toValue: 1.0, duration: 250, useNativeDriver: true }),
+      );
+    } finally {
+      timingSpy.mockRestore();
+      parallelSpy.mockRestore();
+    }
   });
 });
