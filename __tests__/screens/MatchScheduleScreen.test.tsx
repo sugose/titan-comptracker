@@ -72,6 +72,25 @@ const MATCH_C: Match = {
   venue: { name: "MetLife", city: "East Rutherford", country: "USA" },
 };
 
+const MATCH_ONGOING: Match = {
+  id: 4,
+  utcDate: "2026-06-11T20:00:00Z",
+  status: "IN_PLAY",
+  homeTeam: "France",
+  awayTeam: "Spain",
+  venue: { name: "SoFi Stadium", city: "Inglewood", country: "USA" },
+};
+
+const MATCH_FINISHED: Match = {
+  id: 5,
+  utcDate: "2026-06-10T15:00:00Z",
+  status: "FINISHED",
+  homeTeam: "Italy",
+  awayTeam: "Portugal",
+  venue: { name: "Rose Bowl", city: "Pasadena", country: "USA" },
+  score: { home: 1, away: 0 },
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -136,6 +155,41 @@ describe("MatchScheduleScreen", () => {
       expect(screen.getByTestId("focused-3")).toBeTruthy();
       expect(screen.getByTestId("compact-1")).toBeTruthy();
       expect(screen.getByTestId("compact-2")).toBeTruthy();
+    });
+  });
+
+  it("focuses the first ONGOING match on load when one exists", async () => {
+    // After sort: MATCH_C (Jun 10 SCHEDULED), MATCH_ONGOING (Jun 11 IN_PLAY), MATCH_B (Jun 14 SCHEDULED)
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_B, MATCH_C, MATCH_ONGOING]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("focused-4")).toBeTruthy();
+      expect(screen.getByTestId("compact-3")).toBeTruthy();
+      expect(screen.getByTestId("compact-2")).toBeTruthy();
+    });
+  });
+
+  it("focuses the first UPCOMING match when no ONGOING match exists", async () => {
+    // After sort: MATCH_FINISHED (Jun 10), MATCH_A (Jun 11 SCHEDULED), MATCH_B (Jun 14 SCHEDULED)
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_B, MATCH_A, MATCH_FINISHED]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      // MATCH_FINISHED is index 0 but FINISHED; first UPCOMING is MATCH_A at index 1
+      expect(screen.getByTestId("focused-1")).toBeTruthy();
+      expect(screen.getByTestId("compact-5")).toBeTruthy();
+      expect(screen.getByTestId("compact-2")).toBeTruthy();
+    });
+  });
+
+  it("defaults to index 0 when all matches are FINISHED", async () => {
+    const finishedA: Match = { ...MATCH_FINISHED, id: 6, utcDate: "2026-06-09T15:00:00Z" };
+    const finishedB: Match = { ...MATCH_FINISHED, id: 7, utcDate: "2026-06-10T15:00:00Z" };
+    (getMatches as jest.Mock).mockResolvedValueOnce([finishedB, finishedA]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      // After sort: finishedA (Jun 9) at index 0 → focused
+      expect(screen.getByTestId("focused-6")).toBeTruthy();
+      expect(screen.getByTestId("compact-7")).toBeTruthy();
     });
   });
 });

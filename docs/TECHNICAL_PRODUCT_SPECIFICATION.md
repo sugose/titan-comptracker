@@ -123,6 +123,12 @@ Note: venue local time is not displayed. The football-data.org free tier does no
 - As the user scrolls, focus transitions smoothly between cards
 - Out-of-focus cards peek above and below the focused card
 
+### Initial Focus on Load
+When the match list loads, focus is set automatically:
+1. First ONGOING match (IN_PLAY, PAUSED, or LIVE) — most relevant for live tracking
+2. If none, first UPCOMING match (SCHEDULED or TIMED)
+3. If neither, index 0 (first match in the sorted list)
+
 ### Game State Mapping
 
 | API status | Display label |
