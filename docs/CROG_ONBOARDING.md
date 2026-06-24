@@ -54,7 +54,7 @@ All PRs — both code PRs (touching `src/`) and docs/tooling PRs — follow the 
 5. **If Clead produces a fix prompt:** implement only and exactly what the prompt specifies. Nothing more.
    a. Push the fix to the same branch.
    b. Go back to step 2.
-6. **If Clead approves:** Clead produces a verdict comment + merge prompt. Adam pastes it. Post the verdict as a PR comment and merge.
+6. **If Clead approves:** Clead produces a verdict comment + merge prompt. Adam pastes it. Post Clead's **full review text** as a PR comment — this must include the threat model, assessment, what was not checked, and the verdict. Do not reduce it to just the approval line. The full review is the permanent record of what was checked and why it was safe to merge. Then merge.
 
 ---
 

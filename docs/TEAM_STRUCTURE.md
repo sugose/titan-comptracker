@@ -48,6 +48,9 @@ These requirements exist because Clead reviews from the diff only (not the full 
 **6. Verdict prompt discipline**
 Clead's verdict is delivered as a single Crog prompt with no preamble or chat commentary. The review summary goes into the PR comment via Crog — not into the chat. The prompt block must be the only content in Clead's post so Adam can copy-paste it directly.
 
+**8. Verdict comment content — Crog's responsibility**
+When Crog posts Clead's verdict as a PR comment, the comment must contain Clead's **full review text**: threat model, assessment, what was not checked, and verdict. Do not reduce it to just the approval line. The full review is the permanent GitHub record of what was checked and why it was safe to merge.
+
 **7. ~~Copi review gate~~** _(removed — Copi is suspended; Clead approves all PR types independently)_
 
 ---
@@ -63,7 +66,7 @@ Clead's verdict is delivered as a single Crog prompt with no preamble or chat co
 3. Adam drops the report into Clead's chat
 4. Clead fetches PR directly, reads diff + pr_dump
 5. If changes needed: Clead produces fix prompt → Adam pastes → Crog implements only what the prompt specifies → pushes → posts pr_dump → reports to Adam in the standard format (PR URL + changed file URLs, incremented `?i=`) → **stops and waits**. Go back to step 3.
-6. If approved: Clead produces verdict + merge prompt → Adam pastes → Crog posts comment and merges
+6. If approved: Clead produces verdict + merge prompt → Adam pastes → Crog posts Clead's **full review text** as a PR comment (threat model, assessment, what was not checked, and verdict — not just the approval line; this is the permanent GitHub record) and merges
 
 ### B — Docs/Tooling PR
 
@@ -72,7 +75,7 @@ Clead's verdict is delivered as a single Crog prompt with no preamble or chat co
 3. Adam drops the report into Clead's chat
 4. Clead fetches PR directly, reads diff + pr_dump
 5. If Clead requests changes: Clead produces fix prompt → Adam pastes → Crog implements only what the prompt specifies → pushes → posts pr_dump → reports to Adam in the standard format (PR URL + changed file URLs, incremented `?i=`) → **stops and waits**. Go back to step 3.
-6. If approved: Clead produces verdict + merge prompt → Adam pastes → Crog posts comment and merges
+6. If approved: Clead produces verdict + merge prompt → Adam pastes → Crog posts Clead's **full review text** as a PR comment (threat model, assessment, what was not checked, and verdict — not just the approval line; this is the permanent GitHub record) and merges
 
 **Hard stop rule:** After posting the pr_dump and reporting back to Adam, Crog stops completely — for all PR types. Crog does not push any fix without Clead's instruction and waits for Adam to paste Clead's prompt. Clead is the mandatory gate on every iteration. No exceptions except Crog's own unambiguous mechanical mistakes before the first Clead review.
 
