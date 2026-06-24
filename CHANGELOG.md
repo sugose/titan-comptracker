@@ -4,6 +4,15 @@ All notable changes to titan-comptracker are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-25
+
+### Fixed
+- Now button scrolling to y=0 when cardLayouts is empty — extracted computeScrollOffset to src/utils/scrollOffset.ts with anchor-based fallback estimation when target card layout is unmeasured (PR #32)
+- Now button scroll race condition — added nowScrollPendingRef to defer scroll until onMeasured fires with real layout coordinates; removed scrollTo from handleNow; guarded currentFocus useEffect against double-scroll (PR #35)
+
+### Added
+- TDD regression tests exposing Now button scroll race condition — mockScrollTo via Reanimated ScrollView override; three tests in "Now button scroll behaviour" describe block (PR #33)
+
 ## [0.3.0] — 2026-06-24
 
 ### Fixed

@@ -35,6 +35,7 @@
 | PBI-2.10 | UX improvements (rate limit, season status, reload button removal) | ✅ | feature/pbi-2-10-ux-improvements | #24 |
 | PBI-2.11 | Reanimated continuous scroll-driven carousel | ✅ | feature/reanimated-carousel | #27 |
 | PBI-2.12 | Top navigation bar with "Now" button | ✅ | feature/pbi-2-12-now-button | #30 |
+| PBI-2.13 | Now button scroll race condition fix | ✅ | fix/now-button-scroll-after-layout | #35 |
 
 ---
 
@@ -55,3 +56,5 @@
 | 2026-06-24 | Animated focus transition uses Animated not Reanimated | Initial implementation used RN Animated; rearchitecture to Reanimated continuous scroll-driven approach identified as needed follow-up (too twitchy/binary) |
 | 2026-06-24 | Reanimated rearchitecture uses CardWrapper with useSharedValue + useAnimatedStyle | Continuous scroll-driven scale eliminates binary Animated.parallel approach; onLayout measurement replaces hardcoded card height constants |
 | 2026-06-24 | Dimensions.get unavailable in Reanimated worklets | Reanimated worklets run on the UI thread; Dimensions is JS-thread only; fix: initialise screenH as SharedValue on mount, update via Dimensions.addEventListener |
+| 2026-06-24 | computeScrollOffset extracted to src/utils/scrollOffset.ts | Enables unit testing of scroll offset logic independently of the screen component; anchor-based fallback handles unmeasured card layouts |
+| 2026-06-24 | Now button scroll deferred to onMeasured callback | scrollTo in handleNow fired before onLayout; fix: nowScrollPendingRef signals pending scroll, onMeasured fires scrollTo with real coordinates after layout; useEffect guarded to prevent double-scroll |
