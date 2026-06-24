@@ -54,23 +54,23 @@ function computeScrollOffset(focusIdx: number, layouts: Record<number, CardLayou
 
 type CardWrapperProps = {
   scrollY: SharedValue<number>;
+  screenH: SharedValue<number>;
   onMeasured: (y: number, height: number) => void;
   children: React.ReactNode;
 };
 
-function CardWrapper({ scrollY, onMeasured, children }: CardWrapperProps) {
+function CardWrapper({ scrollY, screenH, onMeasured, children }: CardWrapperProps) {
   const cardY = useSharedValue(0);
   const cardH = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => {
     if (cardH.value === 0) return {};
-    const screenH = Dimensions.get("window").height;
     const cardCenter = cardY.value + cardH.value / 2;
-    const viewportCenter = scrollY.value + screenH / 2;
+    const viewportCenter = scrollY.value + screenH.value / 2;
     const distance = cardCenter - viewportCenter;
     const scale = interpolate(
       distance,
-      [-screenH / 2, 0, screenH / 2],
+      [-screenH.value / 2, 0, screenH.value / 2],
       [0.88, 1.0, 0.88],
       Extrapolation.CLAMP,
     );
@@ -108,6 +108,14 @@ export default function MatchScheduleScreen() {
   // biome-ignore lint/suspicious/noExplicitAny: Reanimated ScrollView ref type not publicly exported
   const scrollViewRef = useRef<any>(null);
   const scrollY = useSharedValue(0);
+  const screenH = useSharedValue(Dimensions.get("window").height);
+
+  React.useEffect(() => {
+    const sub = Dimensions.addEventListener("change", ({ window }) => {
+      screenH.value = window.height;
+    });
+    return () => sub.remove();
+  }, [screenH]);
 
   const updateFocusFromScroll = useCallback((yValue: number) => {
     const layouts = cardLayouts.current;
@@ -223,6 +231,7 @@ export default function MatchScheduleScreen() {
         <CardWrapper
           key={match.id}
           scrollY={scrollY}
+          screenH={screenH}
           onMeasured={(y, height) => {
             cardLayouts.current[index] = { y, height };
           }}
