@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import React from "react";
 import MatchScheduleScreen from "../../app/competition/[id]";
 import {
@@ -8,6 +8,7 @@ import {
   getMatches,
 } from "../../src/services/footballDataService";
 import { getMatchDetail } from "../../src/services/matchDetailService";
+import { getTeamCrests } from "../../src/services/teamService";
 import type { Match, MatchEvent } from "../../src/types/competition";
 
 jest.mock("expo-router", () => ({
@@ -23,20 +24,48 @@ jest.mock("../../src/services/matchDetailService", () => ({
   getMatchDetail: jest.fn(),
 }));
 
+jest.mock("../../src/services/teamService", () => ({
+  getTeamCrests: jest.fn(),
+}));
+
 jest.mock("../../src/components/GameCardCompact", () => ({
-  GameCardCompact: ({ match }: { match: Match }) => {
-    const { Text } = require("react-native");
+  GameCardCompact: ({
+    match,
+    homeCrest,
+    awayCrest,
+    onPress,
+  }: {
+    match: Match;
+    homeCrest?: string;
+    awayCrest?: string;
+    onPress?: () => void;
+  }) => {
+    const { TouchableOpacity, Text } = require("react-native");
     return (
-      <Text testID={`compact-${match.id}`}>
-        {match.homeTeam} vs {match.awayTeam}
-      </Text>
+      <TouchableOpacity testID={`compact-${match.id}`} onPress={onPress}>
+        <Text>
+          {match.homeTeam} vs {match.awayTeam}
+        </Text>
+        {homeCrest && <Text testID={`compact-home-crest-${match.id}`}>{homeCrest}</Text>}
+        {awayCrest && <Text testID={`compact-away-crest-${match.id}`}>{awayCrest}</Text>}
+      </TouchableOpacity>
     );
   },
 }));
 
-// Capture events prop so tests can inspect it via testID
+// Capture events and crest props so tests can inspect them via testID
 jest.mock("../../src/components/GameCardFocused", () => ({
-  GameCardFocused: ({ match, events }: { match: Match; events?: MatchEvent[] | null }) => {
+  GameCardFocused: ({
+    match,
+    events,
+    homeCrest,
+    awayCrest,
+  }: {
+    match: Match;
+    events?: MatchEvent[] | null;
+    homeCrest?: string;
+    awayCrest?: string;
+  }) => {
     const { View, Text } = require("react-native");
     return (
       <View testID={`focused-${match.id}`}>
@@ -47,6 +76,8 @@ jest.mock("../../src/components/GameCardFocused", () => ({
         {Array.isArray(events) && events.length > 0 && (
           <Text testID="events-present-in-card">{events.length}</Text>
         )}
+        {homeCrest && <Text testID={`focused-home-crest-${match.id}`}>{homeCrest}</Text>}
+        {awayCrest && <Text testID={`focused-away-crest-${match.id}`}>{awayCrest}</Text>}
       </View>
     );
   },
@@ -112,6 +143,8 @@ beforeEach(() => {
   jest.useRealTimers();
   // Default: resolve with empty events so async updates don't leak across tests
   (getMatchDetail as jest.Mock).mockResolvedValue({ events: [] });
+  // Default: resolve with empty crests
+  (getTeamCrests as jest.Mock).mockResolvedValue({});
 });
 
 describe("MatchScheduleScreen", () => {
@@ -291,5 +324,66 @@ describe("MatchScheduleScreen", () => {
     const callCount = (getMatchDetail as jest.Mock).mock.calls.length;
     // fetchedIds ref prevents a second call for the same match
     expect(callCount).toBe(1);
+  });
+
+  // Crest and tap-to-focus tests
+
+  it("fetches team crests on mount", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(getTeamCrests).toHaveBeenCalledWith("WC");
+    });
+  });
+
+  it("passes crest URLs to focused card", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A]);
+    (getTeamCrests as jest.Mock).mockResolvedValueOnce({
+      Mexico: "https://example.com/mexico.png",
+      USA: "https://example.com/usa.png",
+    });
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("focused-home-crest-1")).toBeTruthy();
+      expect(screen.getByTestId("focused-away-crest-1")).toBeTruthy();
+    });
+  });
+
+  it("passes crest URLs to compact cards", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_B]);
+    (getTeamCrests as jest.Mock).mockResolvedValueOnce({
+      Canada: "https://example.com/canada.png",
+      Argentina: "https://example.com/argentina.png",
+    });
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      // MATCH_B (id 2) is the compact card; Canada/Argentina crests passed
+      expect(screen.getByTestId("compact-home-crest-2")).toBeTruthy();
+      expect(screen.getByTestId("compact-away-crest-2")).toBeTruthy();
+    });
+  });
+
+  it("does not crash when crest fetch fails (fails silently)", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A]);
+    (getTeamCrests as jest.Mock).mockRejectedValueOnce(new Error("network"));
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("focused-1"));
+    // No crest testIDs should be present — but the screen renders fine
+    expect(screen.queryByTestId("focused-home-crest-1")).toBeNull();
+  });
+
+  it("tapping a compact card sets it as the focused card", async () => {
+    // After sort: MATCH_C (Jun 10) focused at index 0, MATCH_A (Jun 11) compact at index 1
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_C]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("compact-1")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("compact-1"));
+    await waitFor(() => {
+      // After tap, MATCH_A (id 1) should become focused
+      expect(screen.getByTestId("focused-1")).toBeTruthy();
+      expect(screen.getByTestId("compact-3")).toBeTruthy();
+    });
   });
 });

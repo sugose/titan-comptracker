@@ -1,14 +1,18 @@
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { Match, MatchEvent } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
+
+const CREST_SIZE = Math.round(17 * 1.2);
 
 interface GameCardFocusedProps {
   match: Match;
   deviceTimeZone: string;
   events?: MatchEvent[] | null;
   onReload?: () => void;
+  homeCrest?: string;
+  awayCrest?: string;
 }
 
 function scoreText(match: Match): string {
@@ -41,7 +45,14 @@ function EventRow({ event }: { event: MatchEvent }) {
   );
 }
 
-export function GameCardFocused({ match, deviceTimeZone, events, onReload }: GameCardFocusedProps) {
+export function GameCardFocused({
+  match,
+  deviceTimeZone,
+  events,
+  onReload,
+  homeCrest,
+  awayCrest,
+}: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
   const showReload = events !== undefined;
@@ -49,9 +60,29 @@ export function GameCardFocused({ match, deviceTimeZone, events, onReload }: Gam
   return (
     <View testID="focused-card" style={styles.card}>
       <View style={styles.teams}>
-        <Text style={styles.teamName}>{match.homeTeam}</Text>
+        <View style={styles.teamSide}>
+          {homeCrest && (
+            <Image
+              testID="home-crest"
+              source={{ uri: homeCrest }}
+              style={styles.crest}
+              resizeMode="contain"
+            />
+          )}
+          <Text style={styles.teamName}>{match.homeTeam}</Text>
+        </View>
         <Text style={styles.vs}>vs</Text>
-        <Text style={styles.teamName}>{match.awayTeam}</Text>
+        <View style={[styles.teamSide, styles.teamSideAway]}>
+          <Text style={styles.teamName}>{match.awayTeam}</Text>
+          {awayCrest && (
+            <Image
+              testID="away-crest"
+              source={{ uri: awayCrest }}
+              style={styles.crest}
+              resizeMode="contain"
+            />
+          )}
+        </View>
       </View>
 
       {showReload && (
@@ -131,11 +162,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
+  teamSide: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  teamSideAway: {
+    justifyContent: "center",
+  },
+  crest: {
+    width: CREST_SIZE,
+    height: CREST_SIZE,
+    marginHorizontal: 4,
+  },
   teamName: {
     color: "#ffffff",
     fontSize: 17,
     fontWeight: "700",
-    flex: 1,
     textAlign: "center",
   },
   vs: {

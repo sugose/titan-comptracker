@@ -281,4 +281,38 @@ describe("GameCardFocused", () => {
     fireEvent.press(screen.getByTestId("reload-button"));
     expect(onReload).toHaveBeenCalledTimes(1);
   });
+
+  // Crest tests
+
+  it("renders home crest image when homeCrest is provided", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        homeCrest="https://example.com/mexico.png"
+      />,
+    );
+    expect(screen.getByTestId("home-crest")).toBeTruthy();
+  });
+
+  it("renders away crest image when awayCrest is provided", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        awayCrest="https://example.com/usa.png"
+      />,
+    );
+    expect(screen.getByTestId("away-crest")).toBeTruthy();
+  });
+
+  it("does not render home crest when homeCrest is not provided", () => {
+    render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.queryByTestId("home-crest")).toBeNull();
+  });
+
+  it("does not render away crest when awayCrest is not provided", () => {
+    render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.queryByTestId("away-crest")).toBeNull();
+  });
 });

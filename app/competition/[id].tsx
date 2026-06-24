@@ -19,6 +19,7 @@ import {
   getMatches,
 } from "../../src/services/footballDataService";
 import { getMatchDetail } from "../../src/services/matchDetailService";
+import { getTeamCrests } from "../../src/services/teamService";
 import type { Match, MatchEvent } from "../../src/types/competition";
 import { gameStateLabel } from "../../src/utils/gameState";
 
@@ -89,6 +90,7 @@ export default function MatchScheduleScreen() {
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [currentFocus, setCurrentFocus] = useState(0);
   const [matchEvents, setMatchEvents] = useState<Record<number, MatchEvent[] | null>>({});
+  const [crests, setCrests] = useState<Record<string, string>>({});
   const fetchedIds = useRef<Set<number>>(new Set());
   const snapEnabled = useRef(false);
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -118,6 +120,10 @@ export default function MatchScheduleScreen() {
       .catch((err: unknown) => {
         setState({ status: "error", message: errorMessage(err) });
       });
+
+    getTeamCrests(id)
+      .then((result) => setCrests(result))
+      .catch(() => {});
   }, [id]);
 
   React.useEffect(() => {
@@ -197,9 +203,18 @@ export default function MatchScheduleScreen() {
             deviceTimeZone={deviceTimeZone}
             events={matchEvents[match.id]}
             onReload={() => reloadEvents(match.id)}
+            homeCrest={crests[match.homeTeam]}
+            awayCrest={crests[match.awayTeam]}
           />
         ) : (
-          <GameCardCompact key={match.id} match={match} deviceTimeZone={deviceTimeZone} />
+          <GameCardCompact
+            key={match.id}
+            match={match}
+            deviceTimeZone={deviceTimeZone}
+            homeCrest={crests[match.homeTeam]}
+            awayCrest={crests[match.awayTeam]}
+            onPress={() => setCurrentFocus(index)}
+          />
         ),
       )}
     </ScrollView>
