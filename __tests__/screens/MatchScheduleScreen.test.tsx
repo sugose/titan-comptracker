@@ -433,6 +433,18 @@ describe("MatchScheduleScreen", () => {
     });
   });
 
+  it("tapping Now when target card layout is not measured does not scroll to top (focus changes correctly)", async () => {
+    // Sorted: MATCH_FINISHED(id5,Jun10 15:00), MATCH_A(id1,Jun11 19:00), MATCH_ONGOING(id4,Jun11 20:00)
+    // ONGOING is at index 2; cardLayouts will be empty in test env (no onLayout fires in RNTL)
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_FINISHED, MATCH_A, MATCH_ONGOING]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+    fireEvent.press(screen.getByTestId("now-button"));
+    await waitFor(() => {
+      expect(screen.getByTestId("focused-4")).toBeTruthy();
+    });
+  });
+
   it("tapping Now sets focus to index 0 when all matches are FINISHED", async () => {
     const finishedA: Match = { ...MATCH_FINISHED, id: 8, utcDate: "2026-06-09T15:00:00Z" };
     const finishedB: Match = { ...MATCH_FINISHED, id: 9, utcDate: "2026-06-10T15:00:00Z" };

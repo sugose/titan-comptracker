@@ -29,10 +29,7 @@ import { getMatchDetail } from "../../src/services/matchDetailService";
 import { getTeamCrests } from "../../src/services/teamService";
 import type { Match, MatchEvent } from "../../src/types/competition";
 import { gameStateLabel } from "../../src/utils/gameState";
-
-type CardLayout = { y: number; height: number };
-
-const TOP_PADDING = 16; // must match styles.content paddingVertical
+import { type CardLayout, TOP_PADDING, computeScrollOffset } from "../../src/utils/scrollOffset";
 
 type ScreenState =
   | { status: "loading" }
@@ -58,13 +55,6 @@ function smartFocusIndex(matches: Match[]): number {
   const upcomingIdx = matches.findIndex((m) => gameStateLabel(m.status) === "UPCOMING");
   if (upcomingIdx !== -1) return upcomingIdx;
   return 0;
-}
-
-function computeScrollOffset(focusIdx: number, layouts: Record<number, CardLayout>): number {
-  const layout = layouts[focusIdx];
-  if (!layout) return 0;
-  const viewportH = Dimensions.get("window").height;
-  return Math.max(0, layout.y + layout.height / 2 - viewportH / 2);
 }
 
 type CardWrapperProps = {
