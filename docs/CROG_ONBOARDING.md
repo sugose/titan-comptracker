@@ -45,10 +45,12 @@ Copi review applies to code PRs only (`src/`). Docs/tooling PRs skip Copi entire
 1. Open the PR
 2. Post the full pr_dump output as a PR comment:
    `gh pr comment <PR-number> --body "$(bash tools/pr_dump.sh <PR-number> --no-src)"`
-3. Report back to Adam with the PR URL appended with `?i=1` (increment `i` by 1 on each subsequent re-report of the same PR, e.g. `?i=2`, `?i=3`).
+3. Report both URLs to Adam (increment `?i=` by 1 on each subsequent re-report of the same PR, e.g. `?i=2`, `?i=3`):
+   - PR URL: `https://github.com/sugose/titan-comptracker/pull/<N>?i=1`
+   - pr_dump comment URL: `https://github.com/sugose/titan-comptracker/pull/<N>#issuecomment-<ID>`
 
    - [ ] Post pr_dump as PR comment
-   - [ ] Report PR URL to Adam with `?i=1` (increment `i` by 1 on each re-report of the same PR)
+   - [ ] Report both URLs to Adam with `?i=1`
    - [ ] STOP. Wait for Adam to paste Clead's instruction. Do nothing until then.
 
 4. Adam drops the URL into Clead's chat. Clead fetches and reviews. Clead produces either a fix prompt or a verdict.

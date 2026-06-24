@@ -60,10 +60,12 @@ Clead's verdict prompt includes a merge instruction if and only if Copi has comp
 1. Crog opens PR from `feature/<name>` or `fix/<name>` to `main`
 2. Copi review auto-requested by workflow (fires only on PRs touching `src/`)
 3. Crog polls until Copi completes, waits 10s, posts pr_dump as PR comment
-4. Crog reports PR URL to Adam with `?i=1` (increment `i` by 1 on each re-report of the same PR)
+4. Crog reports both URLs to Adam (increment `?i=` by 1 on each re-report of the same PR):
+   - PR URL: `https://github.com/sugose/titan-comptracker/pull/<N>?i=1`
+   - pr_dump comment URL: `https://github.com/sugose/titan-comptracker/pull/<N>#issuecomment-<ID>`
 5. Adam drops URL into Clead's chat
 6. Clead fetches PR directly, reads diff + Copi comments + pr_dump
-7. If changes needed: Clead produces fix prompt → Adam pastes → Crog implements only what the prompt specifies → pushes → runs `bash tools/copi_wait.sh <PR-number>` → posts pr_dump → reports `?i=1` to Adam (increment `i` by 1 on each re-report of the same PR) → **stops and waits**. Go back to step 5.
+7. If changes needed: Clead produces fix prompt → Adam pastes → Crog implements only what the prompt specifies → pushes → runs `bash tools/copi_wait.sh <PR-number>` → posts pr_dump → reports both URLs to Adam (PR URL with incremented `?i=` and pr_dump comment URL) → **stops and waits**. Go back to step 5.
 8. If approved: Clead produces verdict + merge prompt → Adam pastes → Crog posts comment and merges
 
 ### B — Docs/Tooling PR
@@ -71,10 +73,10 @@ Clead's verdict prompt includes a merge instruction if and only if Copi has comp
 Copi is not involved — go straight to Clead.
 
 1. Crog opens PR from `docs/<name>` or `tooling/<name>` to `main`
-2. Crog posts pr_dump as PR comment: `gh pr comment <PR-number> --body "$(bash tools/pr_dump.sh <PR-number> --no-src)"` and reports PR URL to Adam with `?i=1` (increment `i` by 1 on each re-report of the same PR)
-3. Adam drops URL into Clead's chat
+2. Crog posts pr_dump as PR comment: `gh pr comment <PR-number> --body "$(bash tools/pr_dump.sh <PR-number> --no-src)"` and reports both URLs to Adam (PR URL with `?i=1` and pr_dump comment URL; increment `?i=` by 1 on each re-report of the same PR)
+3. Adam drops URLs into Clead's chat
 4. Clead fetches PR directly, reads diff + pr_dump
-5. If Clead requests changes: Clead produces fix prompt → Adam pastes → Crog implements only what the prompt specifies → pushes → posts pr_dump → reports `?i=1` to Adam (increment `i` by 1 on each re-report of the same PR) → **stops and waits**. Go back to step 3.
+5. If Clead requests changes: Clead produces fix prompt → Adam pastes → Crog implements only what the prompt specifies → pushes → posts pr_dump → reports both URLs to Adam (PR URL with incremented `?i=` and pr_dump comment URL) → **stops and waits**. Go back to step 3.
 6. If approved: Clead produces verdict + merge prompt → Adam pastes → Crog posts comment and merges
 
 **Hard stop rule:** After posting the pr_dump and reporting back to Adam, Crog stops completely — for both PR types. For code PRs, this follows Copi's review; for docs/tooling PRs, Copi is not involved and the stop applies immediately after posting pr_dump. In both cases: Crog does not read or act on Copi's comments, does not push any fix based on Copi's findings, and waits for Adam to paste Clead's instruction. Clead is the mandatory gate on every iteration. No exceptions except Crog's own unambiguous mechanical mistakes before the first Clead review.
