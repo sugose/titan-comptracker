@@ -61,7 +61,7 @@ describe("getTeamCrests", () => {
     );
   });
 
-  it("omits teams with SVG crest URLs", async () => {
+  it("includes teams with SVG crest URLs", async () => {
     mockFetch.mockResolvedValueOnce(
       makeResponse({
         teams: [
@@ -71,7 +71,7 @@ describe("getTeamCrests", () => {
       }),
     );
     const result = await getTeamCrests("WC");
-    expect("Mexico" in result).toBe(false);
+    expect(result.Mexico).toBe("https://crests.example.com/mexico.svg");
     expect(result.USA).toBe("https://crests.example.com/usa.png");
   });
 
