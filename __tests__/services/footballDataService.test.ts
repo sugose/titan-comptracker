@@ -97,6 +97,14 @@ describe("getMatches", () => {
     await expect(getMatches("WC")).rejects.toThrow(RateLimitError);
   });
 
+  it("throws RateLimitError (not ApiError) when X-Requests-Available is 0 on a 429 response", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(makeMockResponse({ ok: false, status: 429, availableRequests: "0" }));
+
+    await expect(getMatches("WC")).rejects.toThrow(RateLimitError);
+  });
+
   it("RateLimitError includes the reset timestamp when provided", async () => {
     global.fetch = jest
       .fn()

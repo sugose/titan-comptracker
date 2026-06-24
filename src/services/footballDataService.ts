@@ -52,9 +52,13 @@ function mapMatch(apiMatch: ApiMatch): Match {
   return {
     id: apiMatch.id,
     utcDate: apiMatch.utcDate,
+    // API may return undocumented status values; GameCard handles unknown values gracefully.
     status: apiMatch.status as Match["status"],
     homeTeam: apiMatch.homeTeam.name,
     awayTeam: apiMatch.awayTeam.name,
+    // Note: football-data.org free tier does not return structured venue city/country at match level.
+    // venue.name is populated from the API's venue string; city and country default to "".
+    // getVenueTimeZone("", "") returns "UTC" as fallback — this is expected behaviour.
     venue: {
       name: apiMatch.venue ?? "",
       city: "",
@@ -79,12 +83,12 @@ export async function getMatches(competitionId: string): Promise<Match[]> {
   const available = response.headers.get("X-Requests-Available");
   const reset = response.headers.get("X-RequestCounter-Reset");
 
-  if (!response.ok) {
-    throw new ApiError(response.status);
-  }
-
   if (available === "0") {
     throw new RateLimitError(reset);
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status);
   }
 
   const data = (await response.json()) as ApiResponse;

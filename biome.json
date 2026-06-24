@@ -16,6 +16,6 @@
     "lineWidth": 100
   },
   "files": {
-    "ignore": ["node_modules", ".expo", "android", "ios", "dist"]
+    "ignore": ["node_modules", ".expo", "android", "ios", "dist", "coverage"]
   }
 }
