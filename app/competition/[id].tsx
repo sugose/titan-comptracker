@@ -25,6 +25,8 @@ import { gameStateLabel } from "../../src/utils/gameState";
 
 type CardLayout = { y: number; height: number };
 
+const TOP_PADDING = 16; // must match styles.content paddingVertical
+
 type ScreenState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -80,9 +82,9 @@ function CardWrapper({ scrollY, onMeasured, children }: CardWrapperProps) {
       style={animatedStyle}
       onLayout={(e) => {
         const { y, height } = e.nativeEvent.layout;
-        cardY.value = y;
+        cardY.value = y + TOP_PADDING;
         cardH.value = height;
-        onMeasured(y, height);
+        onMeasured(y + TOP_PADDING, height);
       }}
     >
       {children}
