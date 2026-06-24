@@ -80,6 +80,7 @@ export default function MatchScheduleScreen() {
   const [currentFocus, setCurrentFocus] = useState(0);
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const scrollY = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   React.useEffect(() => {
     getMatches(id)
@@ -90,6 +91,20 @@ export default function MatchScheduleScreen() {
         const initialFocus = ongoingIdx !== -1 ? ongoingIdx : upcomingIdx !== -1 ? upcomingIdx : 0;
         setCurrentFocus(initialFocus);
         setState({ status: "success", matches: sorted });
+
+        // Scroll to centre the initially focused card after layout completes.
+        const viewportHeight = Dimensions.get("window").height;
+        let offsetBeforeFocused = 0;
+        for (let i = 0; i < initialFocus; i++) {
+          offsetBeforeFocused += COMPACT_CARD_HEIGHT + 8;
+        }
+        const scrollOffset = Math.max(
+          0,
+          offsetBeforeFocused + FOCUSED_CARD_HEIGHT / 2 - viewportHeight / 2,
+        );
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: false });
+        }, 100);
       })
       .catch((err: unknown) => {
         setState({ status: "error", message: errorMessage(err) });
@@ -122,6 +137,7 @@ export default function MatchScheduleScreen() {
   return (
     // Vertical carousel — focused card centred on screen, compact cards peek above and below.
     <ScrollView
+      ref={scrollViewRef}
       style={styles.scroll}
       contentContainerStyle={styles.content}
       onScroll={handleScroll}
