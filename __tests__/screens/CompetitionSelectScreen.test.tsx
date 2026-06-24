@@ -93,7 +93,7 @@ describe("CompetitionSelectScreen", () => {
     (getCompetitions as jest.Mock).mockRejectedValueOnce(new RateLimitError(null));
     render(<CompetitionSelectScreen />);
     await waitFor(() => {
-      expect(screen.getByText(/rate limit/i)).toBeTruthy();
+      expect(screen.getByText(/too many requests/i)).toBeTruthy();
     });
   });
 

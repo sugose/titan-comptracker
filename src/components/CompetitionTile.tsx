@@ -14,6 +14,31 @@ function seasonYears(startDate: string, endDate: string): string {
   return `${startYear} – ${endYear}`;
 }
 
+function seasonStatus(startDate: string, currentMatchday: number | null): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const diffMs = start.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0) {
+    const formatted = start.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    return `Season starts ${formatted} · in ${diffDays} day${diffDays === 1 ? "" : "s"}`;
+  }
+  if (diffDays === 0) {
+    return "The season starts TODAY!";
+  }
+  if (currentMatchday !== null) {
+    return `Matchday ${currentMatchday}`;
+  }
+  return "";
+}
+
 export function CompetitionTile({ competition, onPress }: CompetitionTileProps) {
   return (
     <TouchableOpacity style={styles.tile} onPress={onPress} accessibilityRole="button">
@@ -24,11 +49,13 @@ export function CompetitionTile({ competition, onPress }: CompetitionTileProps) 
           <Text style={styles.season}>
             {seasonYears(competition.currentSeason.startDate, competition.currentSeason.endDate)}
           </Text>
-          {competition.currentSeason.currentMatchday !== null && (
-            <Text style={styles.matchday}>
-              Matchday {competition.currentSeason.currentMatchday}
-            </Text>
-          )}
+          {(() => {
+            const status = seasonStatus(
+              competition.currentSeason.startDate,
+              competition.currentSeason.currentMatchday,
+            );
+            return status ? <Text style={styles.matchday}>{status}</Text> : null;
+          })()}
         </View>
       )}
     </TouchableOpacity>

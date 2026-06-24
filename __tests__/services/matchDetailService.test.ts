@@ -171,4 +171,16 @@ describe("getMatchDetail", () => {
     mockFetch.mockResolvedValueOnce(makeResponse({}, 500));
     await expect(getMatchDetail(999)).rejects.toMatchObject({ statusCode: 500 });
   });
+
+  it("throws RateLimitError (not ApiError) when status is 429 even if X-Requests-Available is null", async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse({}, 429));
+    await expect(getMatchDetail(999)).rejects.toBeInstanceOf(RateLimitError);
+  });
+
+  it("RateLimitError from 429 includes resetTimestamp when header is present", async () => {
+    mockFetch.mockResolvedValueOnce(
+      makeResponse({}, 429, { "X-RequestCounter-Reset": "1750000000" }),
+    );
+    await expect(getMatchDetail(999)).rejects.toMatchObject({ resetTimestamp: "1750000000" });
+  });
 });

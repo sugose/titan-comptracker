@@ -107,6 +107,10 @@ export async function getMatchDetail(matchId: number): Promise<MatchDetail> {
     throw new RateLimitError(reset);
   }
 
+  if (response.status === 429) {
+    throw new RateLimitError(reset);
+  }
+
   if (!response.ok) {
     throw new ApiError(response.status);
   }
