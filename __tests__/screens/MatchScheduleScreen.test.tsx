@@ -387,4 +387,62 @@ describe("MatchScheduleScreen", () => {
       expect(screen.getByTestId("compact-3")).toBeTruthy();
     });
   });
+
+  // Top bar / Now button tests
+
+  it("renders the top bar when matches are loaded", async () => {
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("top-bar")).toBeTruthy();
+    });
+  });
+
+  it("does not render the top bar while loading", () => {
+    (getMatches as jest.Mock).mockReturnValueOnce(new Promise(() => {}));
+    render(<MatchScheduleScreen />);
+    expect(screen.queryByTestId("top-bar")).toBeNull();
+  });
+
+  it("tapping Now sets focus to the first ONGOING match when one exists", async () => {
+    // After sort: MATCH_C (Jun 10 17:00), MATCH_FINISHED (Jun 10 15:00→sorted first), MATCH_ONGOING, MATCH_B
+    // Sorted by utcDate: MATCH_FINISHED(id5,Jun10 15:00), MATCH_C(id3,Jun10 17:00), MATCH_ONGOING(id4,Jun11 20:00), MATCH_B(id2,Jun14)
+    (getMatches as jest.Mock).mockResolvedValueOnce([
+      MATCH_B,
+      MATCH_C,
+      MATCH_ONGOING,
+      MATCH_FINISHED,
+    ]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+    fireEvent.press(screen.getByTestId("now-button"));
+    await waitFor(() => {
+      expect(screen.getByTestId("focused-4")).toBeTruthy();
+    });
+  });
+
+  it("tapping Now sets focus to the first UPCOMING match when no ONGOING match exists", async () => {
+    // Sorted: MATCH_FINISHED(id5,Jun10 15:00), MATCH_C(id3,Jun10 17:00,SCHEDULED), MATCH_A(id1,Jun11,SCHEDULED), MATCH_B(id2,Jun14,SCHEDULED)
+    (getMatches as jest.Mock).mockResolvedValueOnce([MATCH_A, MATCH_B, MATCH_C, MATCH_FINISHED]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+    fireEvent.press(screen.getByTestId("now-button"));
+    await waitFor(() => {
+      // First UPCOMING after sort is MATCH_C (id 3, index 1 after MATCH_FINISHED at index 0)
+      expect(screen.getByTestId("focused-3")).toBeTruthy();
+    });
+  });
+
+  it("tapping Now sets focus to index 0 when all matches are FINISHED", async () => {
+    const finishedA: Match = { ...MATCH_FINISHED, id: 8, utcDate: "2026-06-09T15:00:00Z" };
+    const finishedB: Match = { ...MATCH_FINISHED, id: 9, utcDate: "2026-06-10T15:00:00Z" };
+    (getMatches as jest.Mock).mockResolvedValueOnce([finishedB, finishedA]);
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("now-button"));
+    fireEvent.press(screen.getByTestId("now-button"));
+    await waitFor(() => {
+      // Index 0 after sort is finishedA (earlier date)
+      expect(screen.getByTestId("focused-8")).toBeTruthy();
+    });
+  });
 });
