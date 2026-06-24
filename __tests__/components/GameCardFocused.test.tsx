@@ -116,20 +116,6 @@ describe("GameCardFocused", () => {
     expect(screen.getByText("- - -")).toBeTruthy();
   });
 
-  it("accepts a scaleValue prop without throwing", () => {
-    const { Animated } = require("react-native");
-    const scaleValue = new Animated.Value(1.0);
-    expect(() =>
-      render(
-        <GameCardFocused
-          match={SCHEDULED_MATCH}
-          deviceTimeZone="Europe/Stockholm"
-          scaleValue={scaleValue}
-        />,
-      ),
-    ).not.toThrow();
-  });
-
   // Events prop tests
 
   it("shows no events section when events is undefined", () => {

@@ -1,16 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from "react-native-reanimated";
 import { GameCardCompact } from "../../src/components/GameCardCompact";
 import { GameCardFocused } from "../../src/components/GameCardFocused";
 import {
@@ -24,21 +23,9 @@ import { getTeamCrests } from "../../src/services/teamService";
 import type { Match, MatchEvent } from "../../src/types/competition";
 import { gameStateLabel } from "../../src/utils/gameState";
 
-// Approximate card heights used to estimate scroll position → focus index.
-// These are intentional approximations — actual rendered heights vary by device,
-// font scaling, and content length. A future PBI should replace this with
-// onLayout-based measurement for pixel-accurate focus tracking.
-const COMPACT_CARD_HEIGHT = 72;
-const FOCUSED_CARD_HEIGHT = 200;
+type CardLayout = { y: number; height: number };
 
-function computeScrollOffset(focusIdx: number): number {
-  const viewportHeight = Dimensions.get("window").height;
-  let offsetBeforeFocused = 0;
-  for (let i = 0; i < focusIdx; i++) {
-    offsetBeforeFocused += COMPACT_CARD_HEIGHT + 8;
-  }
-  return Math.max(0, offsetBeforeFocused + FOCUSED_CARD_HEIGHT / 2 - viewportHeight / 2);
-}
+const TOP_PADDING = 16; // must match styles.content paddingVertical
 
 type ScreenState =
   | { status: "loading" }
@@ -58,30 +45,51 @@ function errorMessage(err: unknown): string {
   return "An unexpected error occurred.";
 }
 
-// Note: this function uses the current focusedIdx to estimate card heights during
-// iteration, creating a brief circular dependency when focus transitions. The
-// approximation is acceptable for smooth scrolling but may produce a one-frame
-// lag on fast scrolls. Acceptable for this iteration.
-// Return the index of the card whose centre is closest to the vertical midpoint of the viewport.
-function focusedIndex(scrollY: number, matches: Match[], focusedIdx: number): number {
-  const viewportHeight = Dimensions.get("window").height;
-  const viewportMid = scrollY + viewportHeight / 2;
+function computeScrollOffset(focusIdx: number, layouts: Record<number, CardLayout>): number {
+  const layout = layouts[focusIdx];
+  if (!layout) return 0;
+  const viewportH = Dimensions.get("window").height;
+  return Math.max(0, layout.y + layout.height / 2 - viewportH / 2);
+}
 
-  let offset = 0;
-  let bestIdx = 0;
-  let bestDist = Number.POSITIVE_INFINITY;
+type CardWrapperProps = {
+  scrollY: SharedValue<number>;
+  onMeasured: (y: number, height: number) => void;
+  children: React.ReactNode;
+};
 
-  for (let i = 0; i < matches.length; i++) {
-    const cardHeight = i === focusedIdx ? FOCUSED_CARD_HEIGHT : COMPACT_CARD_HEIGHT;
-    const cardMid = offset + cardHeight / 2;
-    const dist = Math.abs(cardMid - viewportMid);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestIdx = i;
-    }
-    offset += cardHeight + (i === focusedIdx ? 12 : 8);
-  }
-  return bestIdx;
+function CardWrapper({ scrollY, onMeasured, children }: CardWrapperProps) {
+  const cardY = useSharedValue(0);
+  const cardH = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    if (cardH.value === 0) return {};
+    const screenH = Dimensions.get("window").height;
+    const cardCenter = cardY.value + cardH.value / 2;
+    const viewportCenter = scrollY.value + screenH / 2;
+    const distance = cardCenter - viewportCenter;
+    const scale = interpolate(
+      distance,
+      [-screenH / 2, 0, screenH / 2],
+      [0.88, 1.0, 0.88],
+      Extrapolation.CLAMP,
+    );
+    return { transform: [{ scale }] };
+  });
+
+  return (
+    <Animated.View
+      style={animatedStyle}
+      onLayout={(e) => {
+        const { y, height } = e.nativeEvent.layout;
+        cardY.value = y + TOP_PADDING;
+        cardH.value = height;
+        onMeasured(y + TOP_PADDING, height);
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
 }
 
 export default function MatchScheduleScreen() {
@@ -92,11 +100,44 @@ export default function MatchScheduleScreen() {
   const [crests, setCrests] = useState<Record<string, string>>({});
   const fetchedIds = useRef<Set<number>>(new Set());
   const snapEnabled = useRef(false);
-  const scaleValues = useRef<Animated.Value[]>([]);
-  const [scaleValuesReady, setScaleValuesReady] = useState(false);
+  const cardLayouts = useRef<Record<number, CardLayout>>({});
+  const matchCountRef = useRef(0);
+  const currentFocusRef = useRef(0);
+  currentFocusRef.current = currentFocus;
   const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const scrollY = useRef(0);
-  const scrollViewRef = useRef<ScrollView>(null);
+  // biome-ignore lint/suspicious/noExplicitAny: Reanimated ScrollView ref type not publicly exported
+  const scrollViewRef = useRef<any>(null);
+  const scrollY = useSharedValue(0);
+
+  const updateFocusFromScroll = useCallback((yValue: number) => {
+    const layouts = cardLayouts.current;
+    const count = matchCountRef.current;
+    if (count === 0) return;
+    const screenH = Dimensions.get("window").height;
+    const viewportCenter = yValue + screenH / 2;
+    let bestIdx = 0;
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < count; i++) {
+      const layout = layouts[i];
+      if (!layout) continue;
+      const cardCenter = layout.y + layout.height / 2;
+      const dist = Math.abs(cardCenter - viewportCenter);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx !== currentFocusRef.current) {
+      setCurrentFocus(bestIdx);
+    }
+  }, []);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      runOnJS(updateFocusFromScroll)(event.contentOffset.y);
+    },
+  });
 
   React.useEffect(() => {
     getMatches(id)
@@ -105,14 +146,13 @@ export default function MatchScheduleScreen() {
         const ongoingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "ONGOING");
         const upcomingIdx = sorted.findIndex((m) => gameStateLabel(m.status) === "UPCOMING");
         const initialFocus = ongoingIdx !== -1 ? ongoingIdx : upcomingIdx !== -1 ? upcomingIdx : 0;
+        matchCountRef.current = sorted.length;
         setCurrentFocus(initialFocus);
         setState({ status: "success", matches: sorted });
 
-        // Scroll to centre the initially focused card after layout completes.
-        // Enable animated snap-to-centre only after this initial scroll fires.
         setTimeout(() => {
           scrollViewRef.current?.scrollTo({
-            y: computeScrollOffset(initialFocus),
+            y: computeScrollOffset(initialFocus, cardLayouts.current),
             animated: false,
           });
           snapEnabled.current = true;
@@ -126,15 +166,6 @@ export default function MatchScheduleScreen() {
       .then((result) => setCrests(result))
       .catch(() => {});
   }, [id]);
-
-  React.useEffect(() => {
-    if (state.status !== "success") return;
-    if (scaleValues.current.length === state.matches.length) return;
-    scaleValues.current = state.matches.map(
-      (_, i) => new Animated.Value(i === currentFocus ? 1.0 : 0.88),
-    );
-    setScaleValuesReady(true);
-  }, [state, currentFocus]);
 
   React.useEffect(() => {
     if (state.status !== "success") return;
@@ -157,33 +188,11 @@ export default function MatchScheduleScreen() {
   React.useEffect(() => {
     if (!snapEnabled.current) return;
     if (state.status !== "success") return;
-    scrollViewRef.current?.scrollTo({ y: computeScrollOffset(currentFocus), animated: true });
+    scrollViewRef.current?.scrollTo({
+      y: computeScrollOffset(currentFocus, cardLayouts.current),
+      animated: true,
+    });
   }, [currentFocus, state.status]);
-
-  function animateFocusChange(next: number) {
-    if (scaleValues.current.length > 0) {
-      Animated.parallel([
-        Animated.timing(scaleValues.current[currentFocus], {
-          toValue: 0.88,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleValues.current[next], {
-          toValue: 1.0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-    setCurrentFocus(next);
-  }
-
-  function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    scrollY.current = event.nativeEvent.contentOffset.y;
-    if (state.status !== "success") return;
-    const next = focusedIndex(scrollY.current, state.matches, currentFocus);
-    if (next !== currentFocus) animateFocusChange(next);
-  }
 
   if (state.status === "loading") {
     return (
@@ -202,39 +211,49 @@ export default function MatchScheduleScreen() {
   }
 
   return (
-    // Vertical carousel — focused card centred on screen, compact cards peek above and below.
-    <ScrollView
+    <Animated.ScrollView
       ref={scrollViewRef}
       style={styles.scroll}
       contentContainerStyle={styles.content}
-      onScroll={handleScroll}
+      onScroll={scrollHandler}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={true}
     >
-      {state.matches.map((match, index) =>
-        index === currentFocus ? (
-          <GameCardFocused
-            key={match.id}
-            match={match}
-            deviceTimeZone={deviceTimeZone}
-            events={matchEvents[match.id]}
-            homeCrest={crests[match.homeTeam]}
-            awayCrest={crests[match.awayTeam]}
-            scaleValue={scaleValues.current[index]}
-          />
-        ) : (
-          <GameCardCompact
-            key={match.id}
-            match={match}
-            deviceTimeZone={deviceTimeZone}
-            homeCrest={crests[match.homeTeam]}
-            awayCrest={crests[match.awayTeam]}
-            onPress={() => animateFocusChange(index)}
-            scaleValue={scaleValues.current[index]}
-          />
-        ),
-      )}
-    </ScrollView>
+      {state.matches.map((match, index) => (
+        <CardWrapper
+          key={match.id}
+          scrollY={scrollY}
+          onMeasured={(y, height) => {
+            cardLayouts.current[index] = { y, height };
+          }}
+        >
+          {index === currentFocus ? (
+            <GameCardFocused
+              match={match}
+              deviceTimeZone={deviceTimeZone}
+              events={matchEvents[match.id]}
+              homeCrest={crests[match.homeTeam]}
+              awayCrest={crests[match.awayTeam]}
+            />
+          ) : (
+            <GameCardCompact
+              match={match}
+              deviceTimeZone={deviceTimeZone}
+              homeCrest={crests[match.homeTeam]}
+              awayCrest={crests[match.awayTeam]}
+              onPress={() => {
+                currentFocusRef.current = index;
+                setCurrentFocus(index);
+                scrollViewRef.current?.scrollTo({
+                  y: computeScrollOffset(index, cardLayouts.current),
+                  animated: true,
+                });
+              }}
+            />
+          )}
+        </CardWrapper>
+      ))}
+    </Animated.ScrollView>
   );
 }
 

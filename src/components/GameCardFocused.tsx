@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import React from "react";
-import { ActivityIndicator, Animated, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import type { Match, MatchEvent } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
 import { formatInTimeZone } from "../utils/time";
@@ -13,7 +13,6 @@ interface GameCardFocusedProps {
   events?: MatchEvent[] | null;
   homeCrest?: string;
   awayCrest?: string;
-  scaleValue?: Animated.Value;
 }
 
 function scoreText(match: Match): string {
@@ -52,82 +51,79 @@ export function GameCardFocused({
   events,
   homeCrest,
   awayCrest,
-  scaleValue,
 }: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleValue ?? 1.0 }] }}>
-      <View testID="focused-card" style={styles.card}>
-        <View style={styles.teams}>
-          <View style={styles.teamSide}>
-            {homeCrest && (
-              <Image
-                testID="home-crest"
-                source={{ uri: homeCrest }}
-                style={styles.crest}
-                contentFit="contain"
-              />
-            )}
-            <Text style={styles.teamName}>{match.homeTeam}</Text>
-          </View>
-          <Text style={styles.vs}>vs</Text>
-          <View style={[styles.teamSide, styles.teamSideAway]}>
-            <Text style={styles.teamName}>{match.awayTeam}</Text>
-            {awayCrest && (
-              <Image
-                testID="away-crest"
-                source={{ uri: awayCrest }}
-                style={styles.crest}
-                contentFit="contain"
-              />
-            )}
-          </View>
+    <View testID="focused-card" style={styles.card}>
+      <View style={styles.teams}>
+        <View style={styles.teamSide}>
+          {homeCrest && (
+            <Image
+              testID="home-crest"
+              source={{ uri: homeCrest }}
+              style={styles.crest}
+              contentFit="contain"
+            />
+          )}
+          <Text style={styles.teamName}>{match.homeTeam}</Text>
         </View>
-
-        <View style={styles.badgeRow}>
-          <Text style={styles.badge}>{label}</Text>
-          {showScore(label) && (
-            <Text testID="focused-score" style={styles.score}>
-              {scoreText(match)}
-            </Text>
+        <Text style={styles.vs}>vs</Text>
+        <View style={[styles.teamSide, styles.teamSideAway]}>
+          <Text style={styles.teamName}>{match.awayTeam}</Text>
+          {awayCrest && (
+            <Image
+              testID="away-crest"
+              source={{ uri: awayCrest }}
+              style={styles.crest}
+              contentFit="contain"
+            />
           )}
         </View>
+      </View>
 
-        <View style={styles.times}>
-          <Text style={styles.timeLabel}>Your time</Text>
-          <Text style={styles.timeValue}>{kickOffDeviceTime}</Text>
-        </View>
-
-        <View style={styles.venue}>
-          <Text style={styles.venueName}>{match.venue.name}</Text>
-          {(match.venue.city || match.venue.country) && (
-            <Text style={styles.venueLocation}>
-              {[match.venue.city, match.venue.country].filter(Boolean).join(", ")}
-            </Text>
-          )}
-        </View>
-
-        {events === null && (
-          <ActivityIndicator
-            testID="events-loading"
-            size="small"
-            color="#f0a500"
-            style={styles.eventsLoading}
-          />
-        )}
-
-        {Array.isArray(events) && events.length > 0 && (
-          <View testID="events-list" style={styles.eventsList}>
-            {events.map((event, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: events are ordered and stable
-              <EventRow key={i} event={event} />
-            ))}
-          </View>
+      <View style={styles.badgeRow}>
+        <Text style={styles.badge}>{label}</Text>
+        {showScore(label) && (
+          <Text testID="focused-score" style={styles.score}>
+            {scoreText(match)}
+          </Text>
         )}
       </View>
-    </Animated.View>
+
+      <View style={styles.times}>
+        <Text style={styles.timeLabel}>Your time</Text>
+        <Text style={styles.timeValue}>{kickOffDeviceTime}</Text>
+      </View>
+
+      <View style={styles.venue}>
+        <Text style={styles.venueName}>{match.venue.name}</Text>
+        {(match.venue.city || match.venue.country) && (
+          <Text style={styles.venueLocation}>
+            {[match.venue.city, match.venue.country].filter(Boolean).join(", ")}
+          </Text>
+        )}
+      </View>
+
+      {events === null && (
+        <ActivityIndicator
+          testID="events-loading"
+          size="small"
+          color="#f0a500"
+          style={styles.eventsLoading}
+        />
+      )}
+
+      {Array.isArray(events) && events.length > 0 && (
+        <View testID="events-list" style={styles.eventsList}>
+          {events.map((event, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: events are ordered and stable
+            <EventRow key={i} event={event} />
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
