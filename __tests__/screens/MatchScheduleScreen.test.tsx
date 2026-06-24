@@ -153,8 +153,9 @@ beforeEach(() => {
   jest.useRealTimers();
   // Default: resolve with empty events so async updates don't leak across tests
   (getMatchDetail as jest.Mock).mockResolvedValue({ events: [] });
-  // Default: resolve with empty crests
-  (getTeamCrests as jest.Mock).mockResolvedValue({});
+  // Default: reject so setCrests is never called — prevents async state updates leaking
+  // between tests. Tests that need crests override this with mockResolvedValueOnce.
+  (getTeamCrests as jest.Mock).mockRejectedValue(new Error("crests suppressed in test"));
 });
 
 describe("MatchScheduleScreen", () => {
