@@ -4,6 +4,15 @@ All notable changes to titan-comptracker are documented here.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-24
+
+### Fixed
+- Dimensions.get not available in Reanimated worklet context — moved screen height to a SharedValue initialised on the JS thread, passed as prop to CardWrapper; added Dimensions.addEventListener for rotation support (PR #29)
+
+### Added
+- PBI-2.11: Reanimated continuous scroll-driven carousel — replaced binary Animated.parallel scale system with CardWrapper using useSharedValue + useAnimatedStyle + interpolate; onLayout-based card height measurement replacing hardcoded constants; babel.config.js with react-native-reanimated/plugin (PR #27)
+- PBI-2.12: Top navigation bar with "Now" button — persistent top bar on MatchScheduleScreen; "Now" button scrolls and focuses first ONGOING → UPCOMING → index 0 match; smartFocusIndex extracted as shared utility (PR #30)
+
 ## [0.2.0] — 2026-06-24
 
 ### Fixed

@@ -33,6 +33,8 @@
 | PBI-2.8 | SVG crest support fix | ✅ | fix/pbi-2-8-svg-crests | #22 |
 | PBI-2.9 | Animated focus transition (Animated.parallel, scale) | ✅ | feature/pbi-2-9-animated-focus | #23 |
 | PBI-2.10 | UX improvements (rate limit, season status, reload button removal) | ✅ | feature/pbi-2-10-ux-improvements | #24 |
+| PBI-2.11 | Reanimated continuous scroll-driven carousel | ✅ | feature/reanimated-carousel | #27 |
+| PBI-2.12 | Top navigation bar with "Now" button | ✅ | feature/pbi-2-12-now-button | #30 |
 
 ---
 
@@ -51,3 +53,5 @@
 | 2026-06-24 | Venue local time removed from GameCardFocused | football-data.org free tier does not return venue city/country at match level; getVenueTimeZone always falls back to UTC |
 | 2026-06-24 | Team crests use expo-image not React Native Image | expo-image supports SVG URLs returned by football-data.org; React Native Image does not |
 | 2026-06-24 | Animated focus transition uses Animated not Reanimated | Initial implementation used RN Animated; rearchitecture to Reanimated continuous scroll-driven approach identified as needed follow-up (too twitchy/binary) |
+| 2026-06-24 | Reanimated rearchitecture uses CardWrapper with useSharedValue + useAnimatedStyle | Continuous scroll-driven scale eliminates binary Animated.parallel approach; onLayout measurement replaces hardcoded card height constants |
+| 2026-06-24 | Dimensions.get unavailable in Reanimated worklets | Reanimated worklets run on the UI thread; Dimensions is JS-thread only; fix: initialise screenH as SharedValue on mount, update via Dimensions.addEventListener |
