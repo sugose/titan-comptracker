@@ -3,8 +3,8 @@
  * Delete this file when you write your first real test.
  */
 
-describe('placeholder', () => {
-  it('always passes until replaced by real tests', () => {
+describe("placeholder", () => {
+  it("always passes until replaced by real tests", () => {
     expect(true).toBe(true);
   });
 });
