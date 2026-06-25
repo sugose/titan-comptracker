@@ -39,6 +39,17 @@
 
 ---
 
+## Epic 3 — Flat Match Schedule & Favourites
+
+| ID | Description | Status | Branch | PR |
+| --- | --- | --- | --- | --- |
+| PBI-3.1 | Competition favourites — star toggle, filter button, persistence | ✅ | feature/pbi-3-1-competition-favourites | #38 |
+| PBI-3.2 | Flat match schedule for favourited competitions | ✅ | feature/pbi-3-2-flat-match-schedule | #39 |
+| PBI-3.3 | Magnifying glass + animated Now button + gesture interruption | ✅ | feature/pbi-3-3-magnifying-glass | #40 |
+| PBI-3.4 | Team favourites fold-out, game state filter, team star on cards | ✅ | feature/pbi-3-4-team-favourites | #41 |
+
+---
+
 ## Decision Log
 
 | Date | Decision | Rationale |
@@ -58,3 +69,6 @@
 | 2026-06-24 | Dimensions.get unavailable in Reanimated worklets | Reanimated worklets run on the UI thread; Dimensions is JS-thread only; fix: initialise screenH as SharedValue on mount, update via Dimensions.addEventListener |
 | 2026-06-24 | computeScrollOffset extracted to src/utils/scrollOffset.ts | Enables unit testing of scroll offset logic independently of the screen component; anchor-based fallback handles unmeasured card layouts |
 | 2026-06-24 | Now button scroll deferred to onMeasured callback | scrollTo in handleNow fired before onLayout; fix: nowScrollPendingRef signals pending scroll, onMeasured fires scrollTo with real coordinates after layout; useEffect guarded to prevent double-scroll |
+| 2026-06-25 | Favourited competitions route to new FlatMatchSchedule implementation | isFavourite passed as route param at navigation time; avoids async AsyncStorage read on mount in match schedule screen |
+| 2026-06-25 | FlatMatchSchedule uses known card height for scroll math | CARD_HEIGHT = 220 constant eliminates onLayout dependency; computeScrollOffset replaced by simple formula nowIndex * CARD_HEIGHT + TOP_PADDING |
+| 2026-06-25 | Magnifying glass driven by scrollY SharedValue with mathematical card centres | No onLayout or cardLayouts ref needed; pure UI thread worklet using TOP_PADDING + index * CARD_HEIGHT + CARD_HEIGHT / 2 |
