@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Match } from "../types/competition";
 import { gameStateLabel, showScore } from "../utils/gameState";
@@ -31,6 +32,17 @@ export function FlatGameCard({
 }: FlatGameCardProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
+  const abbreviatedTz = useMemo(() => {
+    try {
+      const parts = Intl.DateTimeFormat(undefined, {
+        timeZone: deviceTimeZone,
+        timeZoneName: "short",
+      }).formatToParts(new Date(match.utcDate));
+      return parts.find((p) => p.type === "timeZoneName")?.value ?? deviceTimeZone;
+    } catch {
+      return deviceTimeZone;
+    }
+  }, [deviceTimeZone, match.utcDate]);
 
   return (
     <View testID="flat-card" style={styles.card}>
@@ -80,8 +92,9 @@ export function FlatGameCard({
       </View>
 
       <View style={styles.times}>
-        <Text style={styles.timeLabel}>Your time</Text>
-        <Text style={styles.timeValue}>{kickOffDeviceTime}</Text>
+        <Text testID="flat-card-time" style={styles.timeValue}>
+          {kickOffDeviceTime} <Text style={styles.tzAbbr}>{abbreviatedTz}</Text>
+        </Text>
       </View>
     </View>
   );
@@ -161,13 +174,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 8,
   },
-  timeLabel: {
-    color: "#aaaaaa",
-    fontSize: 10,
-    marginTop: 2,
-  },
   timeValue: {
     color: "#ffffff",
     fontSize: 12,
+  },
+  tzAbbr: {
+    color: "#aaaaaa",
+    fontSize: 11,
   },
 });
