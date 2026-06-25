@@ -311,6 +311,43 @@ describe("FlatMatchSchedule — GestureDetector", () => {
   });
 });
 
+describe("FlatMatchSchedule — null team name regression", () => {
+  it("does not crash when a match has a null homeTeam", () => {
+    const nullHomeMatch = {
+      ...SCHEDULED,
+      id: 99,
+      // biome-ignore lint/suspicious/noExplicitAny: simulating API returning null for team name
+      homeTeam: null as any,
+    };
+    expect(() =>
+      render(<FlatMatchSchedule matches={[nullHomeMatch]} {...defaultProps} />),
+    ).not.toThrow();
+  });
+
+  it("does not crash when a match has a null awayTeam", () => {
+    const nullAwayMatch = {
+      ...SCHEDULED,
+      id: 100,
+      // biome-ignore lint/suspicious/noExplicitAny: simulating API returning null for team name
+      awayTeam: null as any,
+    };
+    expect(() =>
+      render(<FlatMatchSchedule matches={[nullAwayMatch]} {...defaultProps} />),
+    ).not.toThrow();
+  });
+
+  it("does not crash when opening fold-out with null team names in match list", () => {
+    const nullHomeMatch = {
+      ...SCHEDULED,
+      id: 99,
+      // biome-ignore lint/suspicious/noExplicitAny: simulating API returning null for team name
+      homeTeam: null as any,
+    };
+    render(<FlatMatchSchedule matches={[nullHomeMatch, ONGOING]} {...defaultProps} />);
+    expect(() => fireEvent.press(screen.getByTestId("flat-favourites-button"))).not.toThrow();
+  });
+});
+
 describe("smartFocusIndex", () => {
   it("returns the index of the first ONGOING match", () => {
     expect(smartFocusIndex([FINISHED, ONGOING, SCHEDULED])).toBe(1);
