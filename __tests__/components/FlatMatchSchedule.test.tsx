@@ -1,7 +1,36 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import React from "react";
+import type React from "react";
 import { FlatMatchSchedule, smartFocusIndex } from "../../src/components/FlatMatchSchedule";
 import type { Match } from "../../src/types/competition";
+
+jest.mock("react-native-reanimated", () => {
+  const actual = jest.requireActual("react-native-reanimated/mock");
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      // biome-ignore lint/suspicious/noExplicitAny: mock factory
+      ScrollView: ({ children, ...props }: any) => {
+        const { ScrollView } = require("react-native");
+        return <ScrollView {...props}>{children}</ScrollView>;
+      },
+    },
+    useAnimatedRef: () => ({ current: null }),
+    useAnimatedReaction: jest.fn(),
+    useAnimatedScrollHandler: jest.fn(() => jest.fn()),
+    scrollTo: jest.fn(),
+  };
+});
+
+jest.mock("react-native-gesture-handler", () => {
+  const { View } = require("react-native");
+  return {
+    GestureDetector: ({ children }: { children: React.ReactNode }) => (
+      <View testID="flat-gesture-wrapper">{children}</View>
+    ),
+    Gesture: { Pan: () => ({ onBegin: () => ({}) }) },
+  };
+});
 
 jest.mock("../../src/components/GameCardFocused", () => ({
   GameCardFocused: ({ match }: { match: Match }) => {
@@ -92,9 +121,19 @@ describe("FlatMatchSchedule", () => {
     expect(screen.queryAllByTestId(/^focused-/).length).toBe(0);
   });
 
-  it("pressing Now button does not throw", () => {
+  it("pressing Now button does not throw when matches are present", () => {
     render(<FlatMatchSchedule matches={[FINISHED, ONGOING, SCHEDULED]} {...defaultProps} />);
     expect(() => fireEvent.press(screen.getByTestId("flat-now-button"))).not.toThrow();
+  });
+
+  it("pressing Now button does not throw when matches is empty", () => {
+    render(<FlatMatchSchedule matches={[]} {...defaultProps} />);
+    expect(() => fireEvent.press(screen.getByTestId("flat-now-button"))).not.toThrow();
+  });
+
+  it("GestureDetector wraps the scroll view", () => {
+    render(<FlatMatchSchedule matches={[SCHEDULED]} {...defaultProps} />);
+    expect(screen.getByTestId("flat-gesture-wrapper")).toBeTruthy();
   });
 });
 
