@@ -217,52 +217,53 @@ export function FlatMatchSchedule({
         </TouchableOpacity>
       </View>
 
-      {foldOutOpen && (
-        <View testID="flat-favourites-foldout" style={styles.foldOut} pointerEvents="box-none">
-          <ScrollView style={styles.foldOutScroll} contentContainerStyle={styles.foldOutContent}>
-            {uniqueTeams.map((teamName) => (
-              <TouchableOpacity
-                key={teamName}
-                testID={`favourite-team-row-${teamName}`}
-                style={styles.teamRow}
-                onPress={() => toggleTeamFavourite(teamName)}
-              >
-                <Text
-                  testID={`favourite-team-checkbox-${teamName}`}
-                  style={favouriteTeams.has(teamName) ? styles.checkboxChecked : styles.checkbox}
+      <View style={styles.contentArea}>
+        {foldOutOpen && (
+          <View testID="flat-favourites-foldout" style={styles.foldOut}>
+            <ScrollView style={styles.foldOutScroll} contentContainerStyle={styles.foldOutContent}>
+              {uniqueTeams.map((teamName) => (
+                <TouchableOpacity
+                  key={teamName}
+                  testID={`favourite-team-row-${teamName}`}
+                  style={styles.teamRow}
+                  onPress={() => toggleTeamFavourite(teamName)}
                 >
-                  {favouriteTeams.has(teamName) ? "☑" : "☐"}
-                </Text>
-                <Text style={styles.teamRowName} numberOfLines={1}>
-                  {teamName}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      <Animated.ScrollView
-        ref={animatedRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={true}
-      >
-        {displayedMatches.map((match, index) => (
-          <MagnifiedCard key={match.id} index={index} scrollY={scrollY} screenH={screenH}>
-            <GameCardFocused
-              match={match}
-              deviceTimeZone={deviceTimeZone}
-              events={matchEvents[match.id]}
-              homeCrest={crests[match.homeTeam]}
-              awayCrest={crests[match.awayTeam]}
-              favouriteTeams={favouriteTeams}
-            />
-          </MagnifiedCard>
-        ))}
-      </Animated.ScrollView>
+                  <Text
+                    testID={`favourite-team-checkbox-${teamName}`}
+                    style={favouriteTeams.has(teamName) ? styles.checkboxChecked : styles.checkbox}
+                  >
+                    {favouriteTeams.has(teamName) ? "☑" : "☐"}
+                  </Text>
+                  <Text style={styles.teamRowName} numberOfLines={1}>
+                    {teamName}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+        <Animated.ScrollView
+          ref={animatedRef}
+          style={[styles.scroll, { flex: foldOutOpen ? 3 : 10 }]}
+          contentContainerStyle={styles.content}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={true}
+        >
+          {displayedMatches.map((match, index) => (
+            <MagnifiedCard key={match.id} index={index} scrollY={scrollY} screenH={screenH}>
+              <GameCardFocused
+                match={match}
+                deviceTimeZone={deviceTimeZone}
+                events={matchEvents[match.id]}
+                homeCrest={crests[match.homeTeam]}
+                awayCrest={crests[match.awayTeam]}
+                favouriteTeams={favouriteTeams}
+              />
+            </MagnifiedCard>
+          ))}
+        </Animated.ScrollView>
+      </View>
     </View>
   );
 }
@@ -271,7 +272,10 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#0a0a1a",
-    position: "relative",
+  },
+  contentArea: {
+    flex: 1,
+    flexDirection: "row",
   },
   topBar: {
     flexDirection: "row",
@@ -324,16 +328,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   foldOut: {
-    position: "absolute",
-    top: 52,
-    left: 0,
-    width: "70%",
-    height: "80%",
-    backgroundColor: "rgba(26, 26, 46, 0.85)",
+    flex: 7,
+    backgroundColor: "#1a1a2e",
     borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#333355",
-    zIndex: 10,
+    borderRightColor: "#333355",
   },
   foldOutScroll: {
     flex: 1,
@@ -365,7 +363,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    flex: 1,
     backgroundColor: "#0a0a1a",
   },
   content: {
