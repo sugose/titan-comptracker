@@ -47,6 +47,9 @@
 | PBI-3.2 | Flat match schedule for favourited competitions | ✅ | feature/pbi-3-2-flat-match-schedule | #39 |
 | PBI-3.3 | Magnifying glass + animated Now button + gesture interruption | ✅ | feature/pbi-3-3-magnifying-glass | #40 |
 | PBI-3.4 | Team favourites fold-out, game state filter, team star on cards | ✅ | feature/pbi-3-4-team-favourites | #41 |
+| PBI-3.5 | Depth carousel effect with asymmetric overlap and zIndex stacking | ✅ | feature/depth-carousel | #55 |
+| PBI-3.6 | Slim FlatGameCard — teams/score/time only, no venue/events | ✅ | feature/slim-flat-card | #56 |
+| PBI-3.7 | Smart competition sort — active/completed/upcoming with favourites first | ✅ | feature/competition-sort | #57 |
 
 ---
 
@@ -72,3 +75,7 @@
 | 2026-06-25 | Favourited competitions route to new FlatMatchSchedule implementation | isFavourite passed as route param at navigation time; avoids async AsyncStorage read on mount in match schedule screen |
 | 2026-06-25 | FlatMatchSchedule uses known card height for scroll math | CARD_HEIGHT = 220 constant eliminates onLayout dependency; computeScrollOffset replaced by simple formula nowIndex * CARD_HEIGHT + TOP_PADDING |
 | 2026-06-25 | Magnifying glass driven by scrollY SharedValue with mathematical card centres | No onLayout or cardLayouts ref needed; pure UI thread worklet using TOP_PADDING + index * CARD_HEIGHT + CARD_HEIGHT / 2 |
+| 2026-06-25 | GestureDetector removed from FlatMatchSchedule | GestureDetector blocked native scroll; cancelAnimation moved to onBeginDrag in useAnimatedScrollHandler which fires on UI thread |
+| 2026-06-25 | Fold-out uses absolute overlay not inline layout | Inline layout pushed match list down and collapsed on Android; absolute overlay with top:52 anchors below top bar and preserves match list visibility |
+| 2026-06-25 | FlatGameCard is a separate component from GameCardFocused | FlatMatchSchedule needs slim cards without venue/events; separate component avoids prop pollution on shared GameCardFocused |
+| 2026-06-25 | Competition sort: active → completed → upcoming with favourites first in each group | Active competitions are most relevant; completed next; not-yet-started last; favourites always surface to top of their group |

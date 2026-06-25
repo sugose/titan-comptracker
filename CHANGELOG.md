@@ -4,6 +4,25 @@ All notable changes to titan-comptracker are documented here.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-06-25
+
+### Fixed
+- Null team name crash in FlatMatchSchedule uniqueTeams sort — added null guard on homeTeam/awayTeam before push and sort comparator fallback (PR #43)
+- GestureDetector missing GestureHandlerRootView ancestor — wrapped app root in GestureHandlerRootView in _layout.tsx; added null team name regression test (PR #44)
+- GestureDetector blocking scroll in FlatMatchSchedule — removed GestureDetector entirely, cancelAnimation moved to onBeginDrag in useAnimatedScrollHandler (PR #45)
+- Fold-out closing prematurely on crests load — added foldOutOpenRef and foldOutOpenedAtRef to guard against closes within 500ms of opening (PR #46)
+- Fold-out empty due to crests dependency — removed crests from uniqueTeams useMemo dependencies; team names derived from matches only (PR #47)
+- Fold-out ScrollView collapsing to zero height on Android — changed foldOutScroll from flex:1 to flexGrow:1 (PR #48)
+- Now button visually indistinct from filter buttons — right-aligned, green #2ecc71 filled pill, ⊙ Now label; filter buttons grouped left (PR #50)
+- Fold-out repositioned as absolute overlay — top:52 anchors below top bar; opacity 0.85; two-column team grid; pointerEvents box-none (PRs #49, #51, #52, #54)
+- Competition Favourites button left-aligned for consistency with game cards screen (PR #58)
+- FlatGameCard time display — removed 'Your time' label, replaced with abbreviated timezone name inline (PR #59)
+
+### Added
+- PBI-3.5: Depth carousel effect — MagnifiedCard with centreIndex SharedValue; asymmetric negative marginBottom (overlap above centre only); zIndex stacking; scale widened to 0.75–1.0 (PR #55)
+- PBI-3.6: Slim FlatGameCard component — teams, crests, score/badge, time only; no venue/events; CARD_HEIGHT reduced to 140; matchEvents removed from FlatMatchSchedule (PR #56)
+- PBI-3.7: Smart competition sort order — active (days remaining ASC) → completed (most recent first) → upcoming (soonest first); favourites first within each group; extracted to src/utils/competitionSort.ts (PR #57)
+
 ## [0.5.0] — 2026-06-25
 
 ### Added
