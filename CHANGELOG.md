@@ -4,6 +4,14 @@ All notable changes to titan-comptracker are documented here.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-25
+
+### Added
+- PBI-3.1: Competition favourites — star toggle on each competition tile (★/☆), Favourites filter button in top bar (outlined/filled), favourited competitions sorted to top of list, both persisted via AsyncStorage (PR #38)
+- PBI-3.2: Flat match schedule for favourited competitions — uniform full-content cards, no focused/compact distinction, simple Now button with calculated scroll offset, routed via isFavourite route param (PR #39)
+- PBI-3.3: Magnifying glass effect + animated Now button scroll — MagnifiedCard with Reanimated useAnimatedStyle interpolating scale from scrollY SharedValue; Now button animates at 300ms/card via withTiming + scrollTo on UI thread; pan gesture cancels animation on touch (PR #40)
+- PBI-3.4: Team favourites fold-out, game state filter, team star on cards — Favourites button opens fold-out team selector with checkbox per team; game state cycle button (All/Soon/Live/Played); AND-combined filtering; amber ★ next to favourited team crests in GameCardFocused; team favourites persisted globally via AsyncStorage (PR #41)
+
 ## [0.4.0] — 2026-06-25
 
 ### Fixed
