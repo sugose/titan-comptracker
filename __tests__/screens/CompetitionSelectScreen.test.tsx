@@ -95,7 +95,7 @@ describe("CompetitionSelectScreen", () => {
     render(<CompetitionSelectScreen />);
     await waitFor(() => screen.getByTestId("tile-WC"));
     fireEvent.press(screen.getByTestId("tile-WC"));
-    expect(mockPush).toHaveBeenCalledWith("/competition/WC");
+    expect(mockPush).toHaveBeenCalledWith("/competition/WC?isFavourite=false");
   });
 
   it("navigates to /competition/PL when the PL tile is tapped", async () => {
@@ -103,7 +103,7 @@ describe("CompetitionSelectScreen", () => {
     render(<CompetitionSelectScreen />);
     await waitFor(() => screen.getByTestId("tile-PL"));
     fireEvent.press(screen.getByTestId("tile-PL"));
-    expect(mockPush).toHaveBeenCalledWith("/competition/PL");
+    expect(mockPush).toHaveBeenCalledWith("/competition/PL?isFavourite=false");
   });
 
   it("shows a rate limit error message when RateLimitError is thrown", async () => {
