@@ -91,4 +91,14 @@ describe("FlatGameCard", () => {
     expect(screen.queryByTestId("flat-card-events")).toBeNull();
     expect(screen.queryByTestId("events-loading")).toBeNull();
   });
+
+  it("does not show 'Your time' label", () => {
+    render(<FlatGameCard match={BASE_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.queryByText("Your time")).toBeNull();
+  });
+
+  it("shows kick-off time with abbreviated timezone", () => {
+    render(<FlatGameCard match={BASE_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.getByTestId("flat-card-time")).toBeTruthy();
+  });
 });
