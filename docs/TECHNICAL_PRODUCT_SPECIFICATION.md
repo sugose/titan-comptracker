@@ -60,7 +60,7 @@ src/
 - **Star icon** on each `CompetitionTile` (`testID="favourite-star-{code}"`): outline `☆` (#888888) when not favourited; filled `★` (#f0a500) when favourited; tapping toggles state and re-sorts immediately; tapping the star does not navigate to the match schedule
 - **Persistence**: favourite codes stored as JSON array under `AsyncStorage` key `"favouriteCompetitions"`; filter state stored as `"true"` or `"false"` string under key `"favouritesFilterActive"`; both loaded on mount; errors default to empty favourites and filter inactive
 
-### `FlatMatchSchedule` component (PBI-3.2)
+### `FlatMatchSchedule` component (PBI-3.2 / PBI-3.3 / PBI-3.4)
 
 Used when `isFavourite === "true"` is passed to the match schedule screen. Renders a plain (non-Reanimated) scrollable list of matches.
 
@@ -74,13 +74,22 @@ interface FlatMatchScheduleProps {
 }
 ```
 
-- All cards rendered as `GameCardFocused` — no compact/focused distinction
-- Plain React Native `ScrollView` — no Reanimated, no `CardWrapper`, no focus state
-- Fixed `CARD_HEIGHT = 220` for `scrollTo` offset calculation
+- All cards rendered as `GameCardFocused` wrapped in `MagnifiedCard` (Reanimated scale 0.85–1.0 based on scroll position)
+- `Animated.ScrollView` + `useAnimatedRef`; `GestureDetector` (Pan) cancels `withTiming` on touch
+- Fixed `CARD_HEIGHT = 220` for scroll offset calculation
 - `testID="flat-top-bar"` on the top bar `View`
-- `testID="flat-now-button"` on the Now `TouchableOpacity`
-- Pressing Now calls `smartFocusIndex(matches)` and scrolls to `nowIndex * CARD_HEIGHT + TOP_PADDING`
+- Top bar contains three buttons left-to-right: Favourites, state filter cycle, Now
+- **Favourites button** (`testID="flat-favourites-button"`): outlined default, filled when active; tap toggles `filterActive` + `foldOutOpen`
+- **State filter button** (`testID="flat-state-filter-button"`): cycles All → Soon → Live → Played → All; session only
+- **Now button** (`testID="flat-now-button"`): scrolls to `smartFocusIndex(displayedMatches)` using `runOnUI` + `withTiming` + `scrollTo`
+- **Fold-out panel** (`testID="flat-favourites-foldout"`): shows unique teams from full match list; each row has `testID="favourite-team-row-{name}"` and `testID="favourite-team-checkbox-{name}"`; scrollable, max height 240px
+- **AND-combined filter**: state filter AND favourites filter applied to produce `displayedMatches`; empty result shows empty list
+- **Team favourites**: `AsyncStorage` key `"favouriteTeams"` (JSON array of team name strings); loaded on mount; saved on every toggle; default empty Set on read error; `filterActive` and `stateFilter` are session-only (not persisted)
 - Exports `smartFocusIndex` for testability
+
+### `GameCardFocused` — `favouriteTeams` prop (PBI-3.4)
+
+Optional prop `favouriteTeams?: Set<string>`. When provided, renders an amber `★` (`testID="favourite-star-home-{matchId}"` / `testID="favourite-star-away-{matchId}"`) next to each team name that is in the set. No star rendered when prop is absent or team not in set.
 
 ### `teamService.getTeamCrests(competitionCode: string): Promise<Record<string, string>>`
 
