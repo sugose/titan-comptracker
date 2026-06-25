@@ -1,5 +1,5 @@
-import { getCompetitionGroup, sortCompetitions } from "../../src/utils/competitionSort";
 import type { Competition } from "../../src/types/competition";
+import { getCompetitionGroup, sortCompetitions } from "../../src/utils/competitionSort";
 
 const TODAY = new Date("2026-06-25T12:00:00Z");
 
