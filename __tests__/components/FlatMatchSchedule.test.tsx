@@ -346,6 +346,27 @@ describe("FlatMatchSchedule — null team name regression", () => {
     render(<FlatMatchSchedule matches={[nullHomeMatch, ONGOING]} {...defaultProps} />);
     expect(() => fireEvent.press(screen.getByTestId("flat-favourites-button"))).not.toThrow();
   });
+
+  it("does not crash when a match has a null homeTeam or awayTeam", () => {
+    const nullTeamMatch: Match = {
+      id: 99,
+      utcDate: "2026-06-25T12:00:00Z",
+      status: "SCHEDULED",
+      homeTeam: null as unknown as string,
+      awayTeam: null as unknown as string,
+      venue: { name: "Stadium", city: "City", country: "Country" },
+    };
+    expect(() =>
+      render(
+        <FlatMatchSchedule
+          matches={[nullTeamMatch]}
+          crests={{}}
+          matchEvents={{}}
+          deviceTimeZone="Europe/Stockholm"
+        />,
+      ),
+    ).not.toThrow();
+  });
 });
 
 describe("smartFocusIndex", () => {
