@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   Extrapolation,
@@ -111,12 +110,9 @@ export function FlatMatchSchedule({
       scrollY.value = event.contentOffset.y;
     },
     onBeginDrag: () => {
+      cancelAnimation(scrollY);
       runOnJS(setFoldOutOpen)(false);
     },
-  });
-
-  const panGesture = Gesture.Pan().onBegin(() => {
-    cancelAnimation(scrollY);
   });
 
   const uniqueTeams = useMemo(() => {
@@ -230,29 +226,27 @@ export function FlatMatchSchedule({
         </View>
       )}
 
-      <GestureDetector gesture={panGesture}>
-        <Animated.ScrollView
-          ref={animatedRef}
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={true}
-        >
-          {displayedMatches.map((match, index) => (
-            <MagnifiedCard key={match.id} index={index} scrollY={scrollY} screenH={screenH}>
-              <GameCardFocused
-                match={match}
-                deviceTimeZone={deviceTimeZone}
-                events={matchEvents[match.id]}
-                homeCrest={crests[match.homeTeam]}
-                awayCrest={crests[match.awayTeam]}
-                favouriteTeams={favouriteTeams}
-              />
-            </MagnifiedCard>
-          ))}
-        </Animated.ScrollView>
-      </GestureDetector>
+      <Animated.ScrollView
+        ref={animatedRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={true}
+      >
+        {displayedMatches.map((match, index) => (
+          <MagnifiedCard key={match.id} index={index} scrollY={scrollY} screenH={screenH}>
+            <GameCardFocused
+              match={match}
+              deviceTimeZone={deviceTimeZone}
+              events={matchEvents[match.id]}
+              homeCrest={crests[match.homeTeam]}
+              awayCrest={crests[match.awayTeam]}
+              favouriteTeams={favouriteTeams}
+            />
+          </MagnifiedCard>
+        ))}
+      </Animated.ScrollView>
     </View>
   );
 }
