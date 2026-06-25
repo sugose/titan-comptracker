@@ -90,6 +90,7 @@ export function FlatMatchSchedule({
   const [foldOutOpen, setFoldOutOpen] = useState(false);
   const [stateFilter, setStateFilter] = useState<StateFilter>("All");
   const foldOutOpenedAtRef = useRef<number>(0);
+  const foldOutOpenRef = useRef(false);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => {
@@ -106,11 +107,12 @@ export function FlatMatchSchedule({
       .catch(() => {});
   }, []);
 
-  const maybeCloseFoldOut = useCallback(() => {
-    if (foldOutOpen && Date.now() - foldOutOpenedAtRef.current > 500) {
+  function closeFoldOutIfStale() {
+    if (foldOutOpenRef.current && Date.now() - foldOutOpenedAtRef.current > 500) {
+      foldOutOpenRef.current = false;
       setFoldOutOpen(false);
     }
-  }, [foldOutOpen]);
+  }
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -118,7 +120,7 @@ export function FlatMatchSchedule({
     },
     onBeginDrag: () => {
       cancelAnimation(scrollY);
-      runOnJS(maybeCloseFoldOut)();
+      runOnJS(closeFoldOutIfStale)();
     },
   });
 
@@ -164,9 +166,11 @@ export function FlatMatchSchedule({
     if (filterActive) {
       setFilterActive(false);
       setFoldOutOpen(false);
+      foldOutOpenRef.current = false;
     } else {
       setFilterActive(true);
       setFoldOutOpen(true);
+      foldOutOpenRef.current = true;
       foldOutOpenedAtRef.current = Date.now();
     }
   }
