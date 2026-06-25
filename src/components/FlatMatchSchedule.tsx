@@ -6,8 +6,8 @@ import Animated, {
   Extrapolation,
   cancelAnimation,
   interpolate,
+  runOnUI,
   scrollTo,
-  useAnimatedReaction,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -85,13 +85,6 @@ export function FlatMatchSchedule({
     },
   });
 
-  useAnimatedReaction(
-    () => scrollY.value,
-    (y) => {
-      scrollTo(animatedRef, 0, y, false);
-    },
-  );
-
   const panGesture = Gesture.Pan().onBegin(() => {
     cancelAnimation(scrollY);
   });
@@ -101,7 +94,10 @@ export function FlatMatchSchedule({
     const nowIndex = smartFocusIndex(matches);
     const targetY = nowIndex * CARD_HEIGHT + TOP_PADDING;
     const duration = Math.round((Math.abs(targetY - scrollY.value) / CARD_HEIGHT) * 300);
-    scrollY.value = withTiming(targetY, { duration, easing: Easing.linear });
+    runOnUI(() => {
+      scrollY.value = withTiming(targetY, { duration, easing: Easing.linear });
+      scrollTo(animatedRef, 0, targetY, true);
+    })();
   }
 
   return (

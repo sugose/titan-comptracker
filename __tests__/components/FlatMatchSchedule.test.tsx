@@ -16,9 +16,9 @@ jest.mock("react-native-reanimated", () => {
       },
     },
     useAnimatedRef: () => ({ current: null }),
-    useAnimatedReaction: jest.fn(),
     useAnimatedScrollHandler: jest.fn(() => jest.fn()),
     scrollTo: jest.fn(),
+    runOnUI: (fn: () => void) => fn,
   };
 });
 
