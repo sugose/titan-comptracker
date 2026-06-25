@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   foldOut: {
     position: "absolute",
-    top: 0,
+    top: 52,
     left: 0,
     width: "70%",
     height: "80%",
