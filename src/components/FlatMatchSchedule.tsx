@@ -325,11 +325,11 @@ const styles = StyleSheet.create({
   },
   foldOut: {
     position: "absolute",
-    top: 0,
+    top: 52,
     left: 0,
     width: "70%",
     height: "80%",
-    backgroundColor: "rgba(26, 26, 46, 0.97)",
+    backgroundColor: "rgba(26, 26, 46, 0.85)",
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#333355",
