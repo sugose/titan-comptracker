@@ -123,16 +123,16 @@ export function FlatMatchSchedule({
     const seen = new Set<string>();
     const teams: { name: string; crest?: string }[] = [];
     for (const match of matches) {
-      if (!seen.has(match.homeTeam)) {
+      if (match.homeTeam && !seen.has(match.homeTeam)) {
         seen.add(match.homeTeam);
         teams.push({ name: match.homeTeam, crest: crests[match.homeTeam] });
       }
-      if (!seen.has(match.awayTeam)) {
+      if (match.awayTeam && !seen.has(match.awayTeam)) {
         seen.add(match.awayTeam);
         teams.push({ name: match.awayTeam, crest: crests[match.awayTeam] });
       }
     }
-    return teams.sort((a, b) => a.name.localeCompare(b.name));
+    return teams.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
   }, [matches, crests]);
 
   const displayedMatches = useMemo(() => {
