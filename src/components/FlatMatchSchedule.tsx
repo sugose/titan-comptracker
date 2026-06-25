@@ -196,22 +196,24 @@ export function FlatMatchSchedule({
   return (
     <View style={styles.screen}>
       <View testID="flat-top-bar" style={styles.topBar}>
-        <TouchableOpacity
-          testID="flat-favourites-button"
-          style={[styles.pill, filterActive && styles.pillActive]}
-          onPress={handleFavouritesButton}
-        >
-          <Text style={[styles.pillText, filterActive && styles.pillTextActive]}>Favourites</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID="flat-state-filter-button"
-          style={styles.pillActive}
-          onPress={handleStateFilter}
-        >
-          <Text style={styles.pillTextActive}>{stateFilter}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity testID="flat-now-button" style={styles.pillActive} onPress={handleNow}>
-          <Text style={styles.pillTextActive}>Now</Text>
+        <View style={styles.filterButtons}>
+          <TouchableOpacity
+            testID="flat-favourites-button"
+            style={[styles.pill, filterActive && styles.pillActive]}
+            onPress={handleFavouritesButton}
+          >
+            <Text style={[styles.pillText, filterActive && styles.pillTextActive]}>Favourites</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="flat-state-filter-button"
+            style={styles.pillActive}
+            onPress={handleStateFilter}
+          >
+            <Text style={styles.pillTextActive}>{stateFilter}</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity testID="flat-now-button" style={styles.nowButton} onPress={handleNow}>
+          <Text style={styles.nowButtonText}>⊙ Now</Text>
         </TouchableOpacity>
       </View>
 
@@ -271,11 +273,15 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#1a1a3a",
+  },
+  filterButtons: {
+    flexDirection: "row",
+    gap: 8,
+    flex: 1,
   },
   pill: {
     borderRadius: 16,
@@ -297,6 +303,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   pillTextActive: {
+    color: "#0a0a1a",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  nowButton: {
+    backgroundColor: "#2ecc71",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  nowButtonText: {
     color: "#0a0a1a",
     fontSize: 13,
     fontWeight: "700",
