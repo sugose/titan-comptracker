@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
