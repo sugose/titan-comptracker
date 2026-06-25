@@ -17,6 +17,7 @@ import {
   getCompetitions,
 } from "../src/services/competitionService";
 import type { Competition } from "../src/types/competition";
+import { sortCompetitions } from "../src/utils/competitionSort";
 
 type ScreenState =
   | { status: "loading" }
@@ -34,12 +35,6 @@ function errorMessage(err: unknown): string {
     return `Server error (${err.statusCode}). Please try again later.`;
   }
   return "An unexpected error occurred.";
-}
-
-function sortedWithFavourites(competitions: Competition[], favourites: Set<string>): Competition[] {
-  const favs = competitions.filter((c) => favourites.has(c.code));
-  const rest = competitions.filter((c) => !favourites.has(c.code));
-  return [...favs, ...rest];
 }
 
 export default function CompetitionSelectScreen() {
@@ -115,7 +110,7 @@ export default function CompetitionSelectScreen() {
 
   const displayed = filterActive
     ? state.competitions.filter((c) => favourites.has(c.code))
-    : sortedWithFavourites(state.competitions, favourites);
+    : sortCompetitions(state.competitions, favourites);
 
   return (
     <View style={styles.screen}>

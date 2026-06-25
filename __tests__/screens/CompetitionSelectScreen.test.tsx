@@ -68,6 +68,15 @@ const PL: Competition = {
   currentSeason: { startDate: "2025-08-16", endDate: "2026-05-24", currentMatchday: 34 },
 };
 
+// Also active (same group as WC), ends later — used to test same-group fav sort
+const CL: Competition = {
+  id: 2001,
+  code: "CL",
+  name: "UEFA Champions League",
+  area: "Europe",
+  currentSeason: { startDate: "2026-06-01", endDate: "2026-07-31", currentMatchday: null },
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
@@ -175,14 +184,16 @@ describe("Star / favourites feature", () => {
     await waitFor(() => expect(screen.queryByText("★")).toBeNull());
   });
 
-  it("favourited competitions sort to the top of the list", async () => {
-    (getCompetitions as jest.Mock).mockResolvedValueOnce([WC, PL]);
+  it("favourited competitions sort to the top within the same group", async () => {
+    // WC and CL are both active; CL ends later so without favourites WC (ending sooner) is first.
+    // Favouriting CL should push it to the top within the active group.
+    (getCompetitions as jest.Mock).mockResolvedValueOnce([WC, CL]);
     render(<CompetitionSelectScreen />);
-    await waitFor(() => screen.getByTestId("favourite-star-PL"));
-    fireEvent.press(screen.getByTestId("favourite-star-PL"));
+    await waitFor(() => screen.getByTestId("favourite-star-CL"));
+    fireEvent.press(screen.getByTestId("favourite-star-CL"));
     await waitFor(() => {
       const tiles = screen.getAllByTestId(/^tile-/);
-      expect(tiles[0].props.testID).toBe("tile-PL");
+      expect(tiles[0].props.testID).toBe("tile-CL");
       expect(tiles[1].props.testID).toBe("tile-WC");
     });
   });
