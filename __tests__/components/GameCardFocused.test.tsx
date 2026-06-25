@@ -264,4 +264,56 @@ describe("GameCardFocused", () => {
     render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
     expect(screen.queryByTestId("away-crest")).toBeNull();
   });
+
+  // favouriteTeams star tests
+
+  it("renders star next to home team when homeTeam is in favouriteTeams", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        favouriteTeams={new Set(["Mexico"])}
+      />,
+    );
+    expect(screen.getByTestId("favourite-star-home-1")).toBeTruthy();
+  });
+
+  it("renders star next to away team when awayTeam is in favouriteTeams", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        favouriteTeams={new Set(["USA"])}
+      />,
+    );
+    expect(screen.getByTestId("favourite-star-away-1")).toBeTruthy();
+  });
+
+  it("does not render home star when homeTeam is not in favouriteTeams", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        favouriteTeams={new Set(["USA"])}
+      />,
+    );
+    expect(screen.queryByTestId("favourite-star-home-1")).toBeNull();
+  });
+
+  it("does not render away star when awayTeam is not in favouriteTeams", () => {
+    render(
+      <GameCardFocused
+        match={SCHEDULED_MATCH}
+        deviceTimeZone="Europe/Stockholm"
+        favouriteTeams={new Set(["Mexico"])}
+      />,
+    );
+    expect(screen.queryByTestId("favourite-star-away-1")).toBeNull();
+  });
+
+  it("renders no stars when favouriteTeams prop is absent", () => {
+    render(<GameCardFocused match={SCHEDULED_MATCH} deviceTimeZone="Europe/Stockholm" />);
+    expect(screen.queryByTestId("favourite-star-home-1")).toBeNull();
+    expect(screen.queryByTestId("favourite-star-away-1")).toBeNull();
+  });
 });

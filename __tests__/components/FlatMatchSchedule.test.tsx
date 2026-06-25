@@ -1,7 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import type React from "react";
 import { FlatMatchSchedule, smartFocusIndex } from "../../src/components/FlatMatchSchedule";
 import type { Match } from "../../src/types/competition";
+
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+}));
 
 jest.mock("react-native-reanimated", () => {
   const actual = jest.requireActual("react-native-reanimated/mock");
@@ -49,8 +55,8 @@ const SCHEDULED: Match = {
   id: 1,
   utcDate: "2026-06-14T22:00:00Z",
   status: "SCHEDULED",
-  homeTeam: "A",
-  awayTeam: "B",
+  homeTeam: "Brazil",
+  awayTeam: "Germany",
   venue: { name: "V", city: "", country: "" },
 };
 
@@ -58,8 +64,8 @@ const ONGOING: Match = {
   id: 2,
   utcDate: "2026-06-14T20:00:00Z",
   status: "IN_PLAY",
-  homeTeam: "C",
-  awayTeam: "D",
+  homeTeam: "France",
+  awayTeam: "Spain",
   venue: { name: "V", city: "", country: "" },
 };
 
@@ -67,8 +73,8 @@ const FINISHED: Match = {
   id: 3,
   utcDate: "2026-06-13T18:00:00Z",
   status: "FINISHED",
-  homeTeam: "E",
-  awayTeam: "F",
+  homeTeam: "Italy",
+  awayTeam: "Portugal",
   venue: { name: "V", city: "", country: "" },
 };
 
@@ -76,8 +82,8 @@ const UPCOMING: Match = {
   id: 4,
   utcDate: "2026-06-15T16:00:00Z",
   status: "TIMED",
-  homeTeam: "G",
-  awayTeam: "H",
+  homeTeam: "Argentina",
+  awayTeam: "Brazil",
   venue: { name: "V", city: "", country: "" },
 };
 
@@ -87,53 +93,221 @@ const defaultProps = {
   deviceTimeZone: "UTC",
 };
 
-describe("FlatMatchSchedule", () => {
-  it("renders a card for each match", () => {
-    render(<FlatMatchSchedule matches={[SCHEDULED, ONGOING, FINISHED]} {...defaultProps} />);
-    expect(screen.getByTestId("focused-1")).toBeTruthy();
-    expect(screen.getByTestId("focused-2")).toBeTruthy();
-    expect(screen.getByTestId("focused-3")).toBeTruthy();
+const ALL_MATCHES = [SCHEDULED, ONGOING, FINISHED, UPCOMING];
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+  (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+});
+
+describe("FlatMatchSchedule — top bar", () => {
+  it("renders the Favourites button outlined by default", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    expect(screen.getByTestId("flat-favourites-button")).toBeTruthy();
   });
 
-  it("renders the top bar", () => {
-    render(<FlatMatchSchedule matches={[SCHEDULED]} {...defaultProps} />);
-    expect(screen.getByTestId("flat-top-bar")).toBeTruthy();
+  it("renders the state filter button with label 'All' by default", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    expect(screen.getByTestId("flat-state-filter-button")).toBeTruthy();
+    expect(screen.getByText("All")).toBeTruthy();
   });
 
   it("renders the Now button", () => {
-    render(<FlatMatchSchedule matches={[SCHEDULED]} {...defaultProps} />);
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
     expect(screen.getByTestId("flat-now-button")).toBeTruthy();
   });
+});
 
-  it("all cards rendered uniformly — all use focused-* testID, no compact-* testID", () => {
-    render(<FlatMatchSchedule matches={[SCHEDULED, ONGOING, FINISHED]} {...defaultProps} />);
-    expect(screen.getByTestId("focused-1")).toBeTruthy();
-    expect(screen.getByTestId("focused-2")).toBeTruthy();
-    expect(screen.getByTestId("focused-3")).toBeTruthy();
-    expect(screen.queryByTestId("compact-1")).toBeNull();
-    expect(screen.queryByTestId("compact-2")).toBeNull();
-    expect(screen.queryByTestId("compact-3")).toBeNull();
+describe("FlatMatchSchedule — state filter cycle", () => {
+  it("cycles state filter: All → Soon → Live → Played → All", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    const btn = screen.getByTestId("flat-state-filter-button");
+
+    fireEvent.press(btn);
+    expect(screen.getByText("Soon")).toBeTruthy();
+
+    fireEvent.press(btn);
+    expect(screen.getByText("Live")).toBeTruthy();
+
+    fireEvent.press(btn);
+    expect(screen.getByText("Played")).toBeTruthy();
+
+    fireEvent.press(btn);
+    expect(screen.getByText("All")).toBeTruthy();
   });
 
-  it("renders an empty list when matches is empty", () => {
-    render(<FlatMatchSchedule matches={[]} {...defaultProps} />);
-    expect(screen.getByTestId("flat-now-button")).toBeTruthy();
+  it("shows only UPCOMING matches when filter is 'Soon'", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // → Soon
+    expect(screen.getByTestId(`focused-${SCHEDULED.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${UPCOMING.id}`)).toBeTruthy();
+    expect(screen.queryByTestId(`focused-${ONGOING.id}`)).toBeNull();
+    expect(screen.queryByTestId(`focused-${FINISHED.id}`)).toBeNull();
+  });
+
+  it("shows only ONGOING matches when filter is 'Live'", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // → Soon
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // → Live
+    expect(screen.getByTestId(`focused-${ONGOING.id}`)).toBeTruthy();
+    expect(screen.queryByTestId(`focused-${SCHEDULED.id}`)).toBeNull();
+    expect(screen.queryByTestId(`focused-${FINISHED.id}`)).toBeNull();
+  });
+
+  it("shows only FINISHED matches when filter is 'Played'", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // → Soon
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // → Live
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // → Played
+    expect(screen.getByTestId(`focused-${FINISHED.id}`)).toBeTruthy();
+    expect(screen.queryByTestId(`focused-${SCHEDULED.id}`)).toBeNull();
+    expect(screen.queryByTestId(`focused-${ONGOING.id}`)).toBeNull();
+  });
+});
+
+describe("FlatMatchSchedule — fold-out and team favourites", () => {
+  it("fold-out is hidden by default", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    expect(screen.queryByTestId("flat-favourites-foldout")).toBeNull();
+  });
+
+  it("tapping Favourites button opens the fold-out", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    expect(screen.getByTestId("flat-favourites-foldout")).toBeTruthy();
+  });
+
+  it("fold-out shows all unique teams from match list", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    // ALL_MATCHES teams: Brazil, Germany, France, Spain, Italy, Portugal, Argentina, Brazil (dup)
+    expect(screen.getByTestId("favourite-team-row-Brazil")).toBeTruthy();
+    expect(screen.getByTestId("favourite-team-row-Germany")).toBeTruthy();
+    expect(screen.getByTestId("favourite-team-row-France")).toBeTruthy();
+    expect(screen.getByTestId("favourite-team-row-Spain")).toBeTruthy();
+    expect(screen.getByTestId("favourite-team-row-Italy")).toBeTruthy();
+    expect(screen.getByTestId("favourite-team-row-Portugal")).toBeTruthy();
+    expect(screen.getByTestId("favourite-team-row-Argentina")).toBeTruthy();
+  });
+
+  it("team checkbox starts unchecked (☐)", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    expect(screen.getByTestId("favourite-team-checkbox-Brazil")).toBeTruthy();
+    // checkbox should show ☐ (not checked)
+    expect(screen.queryAllByText("☑").length).toBe(0);
+  });
+
+  it("tapping a team row checks it (☑)", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    fireEvent.press(screen.getByTestId("favourite-team-row-Brazil"));
+    expect(screen.getByText("☑")).toBeTruthy();
+  });
+
+  it("tapping Favourites button again closes fold-out and deactivates filter", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // open
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // close
+    expect(screen.queryByTestId("flat-favourites-foldout")).toBeNull();
+    // All matches should be visible again
+    expect(screen.getByTestId(`focused-${SCHEDULED.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${ONGOING.id}`)).toBeTruthy();
+  });
+
+  it("when Favourites active and team checked, only matches with that team are shown", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // open + filterActive=true
+    fireEvent.press(screen.getByTestId("favourite-team-row-Brazil")); // check Brazil
+    // Brazil plays in SCHEDULED (home) and UPCOMING (away)
+    expect(screen.getByTestId(`focused-${SCHEDULED.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${UPCOMING.id}`)).toBeTruthy();
+    // France/Spain and Italy/Portugal not shown
+    expect(screen.queryByTestId(`focused-${ONGOING.id}`)).toBeNull();
+    expect(screen.queryByTestId(`focused-${FINISHED.id}`)).toBeNull();
+  });
+
+  it("when Favourites active and no teams checked, list is empty", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // filterActive=true, no teams
+    expect(screen.queryByTestId("focused-1")).toBeNull();
+    expect(screen.queryByTestId("focused-2")).toBeNull();
+    expect(screen.queryByTestId("focused-3")).toBeNull();
+    expect(screen.queryByTestId("focused-4")).toBeNull();
+  });
+
+  it("saves favouriteTeams to AsyncStorage when a team is toggled", async () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    fireEvent.press(screen.getByTestId("favourite-team-row-Brazil"));
+    await waitFor(() =>
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "favouriteTeams",
+        expect.stringContaining("Brazil"),
+      ),
+    );
+  });
+
+  it("loads favouriteTeams from AsyncStorage on mount", async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('["France"]');
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // open
+    await waitFor(() => expect(screen.getByText("☑")).toBeTruthy());
+  });
+
+  it("filterActive starts false on remount (not persisted)", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    // All matches should be shown, not filtered
+    expect(screen.getByTestId(`focused-${SCHEDULED.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${ONGOING.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${FINISHED.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${UPCOMING.id}`)).toBeTruthy();
+  });
+
+  it("stateFilter starts 'All' on remount (not persisted)", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    expect(screen.getByText("All")).toBeTruthy();
+  });
+});
+
+describe("FlatMatchSchedule — AND-combined filter", () => {
+  it("AND: Favourites active + Soon filter shows only UPCOMING matches with favourite team", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // filterActive=true
+    fireEvent.press(screen.getByTestId("favourite-team-row-Brazil")); // Brazil checked
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // Soon
+    // Brazil appears in SCHEDULED (UPCOMING) and UPCOMING (TIMED=UPCOMING)
+    expect(screen.getByTestId(`focused-${SCHEDULED.id}`)).toBeTruthy();
+    expect(screen.getByTestId(`focused-${UPCOMING.id}`)).toBeTruthy();
+    expect(screen.queryByTestId(`focused-${ONGOING.id}`)).toBeNull();
+    expect(screen.queryByTestId(`focused-${FINISHED.id}`)).toBeNull();
+  });
+
+  it("AND: Favourites active + Live filter shows empty when favourite team has no live match", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    fireEvent.press(screen.getByTestId("flat-favourites-button")); // filterActive=true
+    fireEvent.press(screen.getByTestId("favourite-team-row-Italy")); // Italy only in FINISHED
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // Soon
+    fireEvent.press(screen.getByTestId("flat-state-filter-button")); // Live
     expect(screen.queryAllByTestId(/^focused-/).length).toBe(0);
+  });
+});
+
+describe("FlatMatchSchedule — GestureDetector", () => {
+  it("GestureDetector wraps the scroll view", () => {
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
+    expect(screen.getByTestId("flat-gesture-wrapper")).toBeTruthy();
   });
 
   it("pressing Now button does not throw when matches are present", () => {
-    render(<FlatMatchSchedule matches={[FINISHED, ONGOING, SCHEDULED]} {...defaultProps} />);
+    render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
     expect(() => fireEvent.press(screen.getByTestId("flat-now-button"))).not.toThrow();
   });
 
   it("pressing Now button does not throw when matches is empty", () => {
     render(<FlatMatchSchedule matches={[]} {...defaultProps} />);
     expect(() => fireEvent.press(screen.getByTestId("flat-now-button"))).not.toThrow();
-  });
-
-  it("GestureDetector wraps the scroll view", () => {
-    render(<FlatMatchSchedule matches={[SCHEDULED]} {...defaultProps} />);
-    expect(screen.getByTestId("flat-gesture-wrapper")).toBeTruthy();
   });
 });
 
@@ -143,7 +317,6 @@ describe("smartFocusIndex", () => {
   });
 
   it("returns the index of the first UPCOMING match when no ONGOING exists", () => {
-    // TIMED maps to UPCOMING
     expect(smartFocusIndex([FINISHED, UPCOMING, SCHEDULED])).toBe(1);
   });
 

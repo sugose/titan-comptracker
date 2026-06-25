@@ -13,6 +13,7 @@ interface GameCardFocusedProps {
   events?: MatchEvent[] | null;
   homeCrest?: string;
   awayCrest?: string;
+  favouriteTeams?: Set<string>;
 }
 
 function scoreText(match: Match): string {
@@ -51,6 +52,7 @@ export function GameCardFocused({
   events,
   homeCrest,
   awayCrest,
+  favouriteTeams,
 }: GameCardFocusedProps) {
   const label = gameStateLabel(match.status);
   const kickOffDeviceTime = formatInTimeZone(match.utcDate, deviceTimeZone);
@@ -67,10 +69,20 @@ export function GameCardFocused({
               contentFit="contain"
             />
           )}
+          {favouriteTeams?.has(match.homeTeam) && (
+            <Text testID={`favourite-star-home-${match.id}`} style={styles.teamStar}>
+              ★
+            </Text>
+          )}
           <Text style={styles.teamName}>{match.homeTeam}</Text>
         </View>
         <Text style={styles.vs}>vs</Text>
         <View style={[styles.teamSide, styles.teamSideAway]}>
+          {favouriteTeams?.has(match.awayTeam) && (
+            <Text testID={`favourite-star-away-${match.id}`} style={styles.teamStar}>
+              ★
+            </Text>
+          )}
           <Text style={styles.teamName}>{match.awayTeam}</Text>
           {awayCrest && (
             <Image
@@ -172,6 +184,11 @@ const styles = StyleSheet.create({
     color: "#888888",
     fontSize: 12,
     marginHorizontal: 8,
+  },
+  teamStar: {
+    fontSize: 14,
+    color: "#f0a500",
+    marginRight: 4,
   },
   badgeRow: {
     flexDirection: "row",
