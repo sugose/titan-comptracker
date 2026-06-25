@@ -243,12 +243,7 @@ export default function MatchScheduleScreen() {
 
   if (isFavourite === "true") {
     return (
-      <FlatMatchSchedule
-        matches={state.matches}
-        crests={crests}
-        matchEvents={matchEvents}
-        deviceTimeZone={deviceTimeZone}
-      />
+      <FlatMatchSchedule matches={state.matches} crests={crests} deviceTimeZone={deviceTimeZone} />
     );
   }
 

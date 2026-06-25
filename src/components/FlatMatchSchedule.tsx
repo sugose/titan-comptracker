@@ -16,11 +16,11 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
-import type { Match, MatchEvent } from "../types/competition";
+import type { Match } from "../types/competition";
 import { gameStateLabel } from "../utils/gameState";
-import { GameCardFocused } from "./GameCardFocused";
+import { FlatGameCard } from "./FlatGameCard";
 
-const CARD_HEIGHT = 220;
+const CARD_HEIGHT = 140;
 const TOP_PADDING = 16;
 
 type StateFilter = "All" | "Soon" | "Live" | "Played";
@@ -46,7 +46,6 @@ function matchesStateFilter(match: Match, filter: StateFilter): boolean {
 interface FlatMatchScheduleProps {
   matches: Match[];
   crests: Record<string, string>;
-  matchEvents: Record<number, MatchEvent[] | null>;
   deviceTimeZone: string;
 }
 
@@ -72,12 +71,10 @@ function MagnifiedCard({
       [0.75, 1.0, 0.75],
       Extrapolation.CLAMP,
     );
-    const marginBottom = interpolate(
-      Math.abs(distance),
-      [0, screenH.value / 2],
-      [-8, -60],
-      Extrapolation.CLAMP,
-    );
+    const marginBottom =
+      distance < 0
+        ? interpolate(distance, [-screenH.value / 2, 0], [-50, -8], Extrapolation.CLAMP)
+        : interpolate(distance, [0, screenH.value / 2], [8, 8], Extrapolation.CLAMP);
     const distanceFromCentre = Math.abs(index - centreIndex.value);
     const zIndex = Math.max(0, 20 - distanceFromCentre * 2);
     return { transform: [{ scale }], marginBottom, zIndex };
@@ -85,12 +82,7 @@ function MagnifiedCard({
   return <Animated.View style={animatedStyle}>{children}</Animated.View>;
 }
 
-export function FlatMatchSchedule({
-  matches,
-  crests,
-  matchEvents,
-  deviceTimeZone,
-}: FlatMatchScheduleProps) {
+export function FlatMatchSchedule({ matches, crests, deviceTimeZone }: FlatMatchScheduleProps) {
   const animatedRef = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useSharedValue(0);
   const screenH = useSharedValue(Dimensions.get("window").height);
@@ -271,10 +263,9 @@ export function FlatMatchSchedule({
             screenH={screenH}
             centreIndex={centreIndex}
           >
-            <GameCardFocused
+            <FlatGameCard
               match={match}
               deviceTimeZone={deviceTimeZone}
-              events={matchEvents[match.id]}
               homeCrest={crests[match.homeTeam]}
               awayCrest={crests[match.awayTeam]}
               favouriteTeams={favouriteTeams}

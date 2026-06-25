@@ -28,8 +28,8 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
-jest.mock("../../src/components/GameCardFocused", () => ({
-  GameCardFocused: ({ match }: { match: Match }) => {
+jest.mock("../../src/components/FlatGameCard", () => ({
+  FlatGameCard: ({ match }: { match: Match }) => {
     const { View, Text } = require("react-native");
     return (
       <View testID={`focused-${match.id}`}>
@@ -79,7 +79,6 @@ const UPCOMING: Match = {
 
 const defaultProps = {
   crests: {},
-  matchEvents: {},
   deviceTimeZone: "UTC",
 };
 
@@ -264,14 +263,7 @@ describe("FlatMatchSchedule — fold-out and team favourites", () => {
 
   it("fold-out shows team names immediately when matches are loaded even before crests arrive", async () => {
     // Render with matches but empty crests (simulating crests not yet loaded)
-    render(
-      <FlatMatchSchedule
-        matches={[MATCH_A]}
-        crests={{}}
-        matchEvents={{}}
-        deviceTimeZone="Europe/Stockholm"
-      />,
-    );
+    render(<FlatMatchSchedule matches={[MATCH_A]} crests={{}} deviceTimeZone="Europe/Stockholm" />);
     fireEvent.press(screen.getByTestId("flat-favourites-button"));
     await waitFor(() => {
       expect(screen.getByTestId(`favourite-team-row-${MATCH_A.homeTeam}`)).toBeTruthy();
@@ -284,7 +276,6 @@ describe("FlatMatchSchedule — fold-out and team favourites", () => {
       <FlatMatchSchedule
         matches={[MATCH_A, MATCH_B]}
         crests={{}}
-        matchEvents={{}}
         deviceTimeZone="Europe/Stockholm"
       />,
     );
