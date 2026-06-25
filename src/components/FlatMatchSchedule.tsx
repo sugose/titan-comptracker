@@ -126,19 +126,19 @@ export function FlatMatchSchedule({
 
   const uniqueTeams = useMemo(() => {
     const seen = new Set<string>();
-    const teams: { name: string; crest?: string }[] = [];
+    const names: string[] = [];
     for (const match of matches) {
       if (match.homeTeam && !seen.has(match.homeTeam)) {
         seen.add(match.homeTeam);
-        teams.push({ name: match.homeTeam, crest: crests[match.homeTeam] });
+        names.push(match.homeTeam);
       }
       if (match.awayTeam && !seen.has(match.awayTeam)) {
         seen.add(match.awayTeam);
-        teams.push({ name: match.awayTeam, crest: crests[match.awayTeam] });
+        names.push(match.awayTeam);
       }
     }
-    return teams.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
-  }, [matches, crests]);
+    return names.sort((a, b) => a.localeCompare(b));
+  }, [matches]);
 
   const displayedMatches = useMemo(() => {
     return matches.filter((m) => {
@@ -218,20 +218,20 @@ export function FlatMatchSchedule({
       {foldOutOpen && (
         <View testID="flat-favourites-foldout" style={styles.foldOut}>
           <ScrollView style={styles.foldOutScroll}>
-            {uniqueTeams.map((team) => (
+            {uniqueTeams.map((teamName) => (
               <TouchableOpacity
-                key={team.name}
-                testID={`favourite-team-row-${team.name}`}
+                key={teamName}
+                testID={`favourite-team-row-${teamName}`}
                 style={styles.teamRow}
-                onPress={() => toggleTeamFavourite(team.name)}
+                onPress={() => toggleTeamFavourite(teamName)}
               >
                 <Text
-                  testID={`favourite-team-checkbox-${team.name}`}
-                  style={favouriteTeams.has(team.name) ? styles.checkboxChecked : styles.checkbox}
+                  testID={`favourite-team-checkbox-${teamName}`}
+                  style={favouriteTeams.has(teamName) ? styles.checkboxChecked : styles.checkbox}
                 >
-                  {favouriteTeams.has(team.name) ? "☑" : "☐"}
+                  {favouriteTeams.has(teamName) ? "☑" : "☐"}
                 </Text>
-                <Text style={styles.teamRowName}>{team.name}</Text>
+                <Text style={styles.teamRowName}>{teamName}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
