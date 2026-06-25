@@ -84,6 +84,8 @@ const defaultProps = {
 };
 
 const ALL_MATCHES = [SCHEDULED, ONGOING, FINISHED, UPCOMING];
+const MATCH_A = SCHEDULED;
+const MATCH_B = ONGOING;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -258,6 +260,41 @@ describe("FlatMatchSchedule — fold-out and team favourites", () => {
   it("stateFilter starts 'All' on remount (not persisted)", () => {
     render(<FlatMatchSchedule matches={ALL_MATCHES} {...defaultProps} />);
     expect(screen.getByText("All")).toBeTruthy();
+  });
+
+  it("fold-out shows team names immediately when matches are loaded even before crests arrive", async () => {
+    // Render with matches but empty crests (simulating crests not yet loaded)
+    render(
+      <FlatMatchSchedule
+        matches={[MATCH_A]}
+        crests={{}}
+        matchEvents={{}}
+        deviceTimeZone="Europe/Stockholm"
+      />,
+    );
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    await waitFor(() => {
+      expect(screen.getByTestId(`favourite-team-row-${MATCH_A.homeTeam}`)).toBeTruthy();
+      expect(screen.getByTestId(`favourite-team-row-${MATCH_A.awayTeam}`)).toBeTruthy();
+    });
+  });
+
+  it("fold-out shows team names from match list when Favourites button tapped", async () => {
+    render(
+      <FlatMatchSchedule
+        matches={[MATCH_A, MATCH_B]}
+        crests={{}}
+        matchEvents={{}}
+        deviceTimeZone="Europe/Stockholm"
+      />,
+    );
+    fireEvent.press(screen.getByTestId("flat-favourites-button"));
+    await waitFor(() => {
+      expect(screen.getByTestId("flat-favourites-foldout")).toBeTruthy();
+      // MATCH_A teams
+      expect(screen.getByTestId(`favourite-team-row-${MATCH_A.homeTeam}`)).toBeTruthy();
+      expect(screen.getByTestId(`favourite-team-row-${MATCH_A.awayTeam}`)).toBeTruthy();
+    });
   });
 });
 
