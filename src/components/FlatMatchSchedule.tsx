@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   Easing,
@@ -89,6 +89,8 @@ export function FlatMatchSchedule({
   const [filterActive, setFilterActive] = useState(false);
   const [foldOutOpen, setFoldOutOpen] = useState(false);
   const [stateFilter, setStateFilter] = useState<StateFilter>("All");
+  const foldOutOpenedAtRef = useRef<number>(0);
+  const foldOutOpenRef = useRef(false);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => {
@@ -105,13 +107,20 @@ export function FlatMatchSchedule({
       .catch(() => {});
   }, []);
 
+  function closeFoldOutIfStale() {
+    if (foldOutOpenRef.current && Date.now() - foldOutOpenedAtRef.current > 500) {
+      foldOutOpenRef.current = false;
+      setFoldOutOpen(false);
+    }
+  }
+
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
     },
     onBeginDrag: () => {
       cancelAnimation(scrollY);
-      runOnJS(setFoldOutOpen)(false);
+      runOnJS(closeFoldOutIfStale)();
     },
   });
 
@@ -157,9 +166,12 @@ export function FlatMatchSchedule({
     if (filterActive) {
       setFilterActive(false);
       setFoldOutOpen(false);
+      foldOutOpenRef.current = false;
     } else {
       setFilterActive(true);
       setFoldOutOpen(true);
+      foldOutOpenRef.current = true;
+      foldOutOpenedAtRef.current = Date.now();
     }
   }
 
