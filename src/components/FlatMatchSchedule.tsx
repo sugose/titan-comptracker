@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#333355",
   },
   foldOutScroll: {
-    flex: 1,
+    flexGrow: 1,
   },
   teamRow: {
     flexDirection: "row",
