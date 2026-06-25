@@ -54,11 +54,13 @@ function MagnifiedCard({
   index,
   scrollY,
   screenH,
+  centreIndex,
   children,
 }: {
   index: number;
   scrollY: SharedValue<number>;
   screenH: SharedValue<number>;
+  centreIndex: SharedValue<number>;
   children: ReactNode;
 }) {
   const animatedStyle = useAnimatedStyle(() => {
@@ -67,10 +69,18 @@ function MagnifiedCard({
     const scale = interpolate(
       distance,
       [-screenH.value / 2, 0, screenH.value / 2],
-      [0.85, 1.0, 0.85],
+      [0.75, 1.0, 0.75],
       Extrapolation.CLAMP,
     );
-    return { transform: [{ scale }] };
+    const marginBottom = interpolate(
+      Math.abs(distance),
+      [0, screenH.value / 2],
+      [-8, -60],
+      Extrapolation.CLAMP,
+    );
+    const distanceFromCentre = Math.abs(index - centreIndex.value);
+    const zIndex = Math.max(0, 20 - distanceFromCentre * 2);
+    return { transform: [{ scale }], marginBottom, zIndex };
   });
   return <Animated.View style={animatedStyle}>{children}</Animated.View>;
 }
@@ -84,6 +94,7 @@ export function FlatMatchSchedule({
   const animatedRef = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useSharedValue(0);
   const screenH = useSharedValue(Dimensions.get("window").height);
+  const centreIndex = useSharedValue(0);
 
   const [favouriteTeams, setFavouriteTeams] = useState<Set<string>>(new Set());
   const [filterActive, setFilterActive] = useState(false);
@@ -117,6 +128,8 @@ export function FlatMatchSchedule({
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
+      const rawIndex = (event.contentOffset.y - TOP_PADDING + CARD_HEIGHT / 2) / CARD_HEIGHT;
+      centreIndex.value = Math.round(Math.max(0, rawIndex));
     },
     onBeginDrag: () => {
       cancelAnimation(scrollY);
@@ -251,7 +264,13 @@ export function FlatMatchSchedule({
         showsVerticalScrollIndicator={true}
       >
         {displayedMatches.map((match, index) => (
-          <MagnifiedCard key={match.id} index={index} scrollY={scrollY} screenH={screenH}>
+          <MagnifiedCard
+            key={match.id}
+            index={index}
+            scrollY={scrollY}
+            screenH={screenH}
+            centreIndex={centreIndex}
+          >
             <GameCardFocused
               match={match}
               deviceTimeZone={deviceTimeZone}
