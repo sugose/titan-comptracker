@@ -216,8 +216,8 @@ export function FlatMatchSchedule({
       </View>
 
       {foldOutOpen && (
-        <View testID="flat-favourites-foldout" style={styles.foldOut}>
-          <ScrollView style={styles.foldOutScroll}>
+        <View testID="flat-favourites-foldout" style={styles.foldOut} pointerEvents="box-none">
+          <ScrollView style={styles.foldOutScroll} contentContainerStyle={styles.foldOutContent}>
             {uniqueTeams.map((teamName) => (
               <TouchableOpacity
                 key={teamName}
@@ -231,7 +231,9 @@ export function FlatMatchSchedule({
                 >
                   {favouriteTeams.has(teamName) ? "☑" : "☐"}
                 </Text>
-                <Text style={styles.teamRowName}>{teamName}</Text>
+                <Text style={styles.teamRowName} numberOfLines={1}>
+                  {teamName}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -267,6 +269,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: "#0a0a1a",
+    position: "relative",
   },
   topBar: {
     flexDirection: "row",
@@ -303,33 +306,45 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   foldOut: {
-    maxHeight: 240,
-    backgroundColor: "#1a1a2e",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "70%",
+    height: "80%",
+    backgroundColor: "rgba(26, 26, 46, 0.97)",
+    borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#333355",
+    borderColor: "#333355",
+    zIndex: 10,
   },
   foldOutScroll: {
-    flexGrow: 1,
+    flex: 1,
+  },
+  foldOutContent: {
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   teamRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    width: "50%",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   checkbox: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#888888",
-    marginRight: 10,
+    marginRight: 6,
   },
   checkboxChecked: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#f0a500",
-    marginRight: 10,
+    marginRight: 6,
   },
   teamRowName: {
     color: "#ffffff",
-    fontSize: 15,
+    fontSize: 12,
+    flex: 1,
   },
   scroll: {
     flex: 1,
