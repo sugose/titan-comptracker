@@ -135,7 +135,11 @@ export default function CompetitionSelectScreen() {
           <CompetitionTile
             key={competition.id}
             competition={competition}
-            onPress={() => router.push(`/competition/${competition.code}`)}
+            onPress={() =>
+              router.push(
+                `/competition/${competition.code}?isFavourite=${favourites.has(competition.code) ? "true" : "false"}`,
+              )
+            }
             isFavourite={favourites.has(competition.code)}
             onToggleFavourite={() => toggleFavourite(competition.code)}
           />

@@ -13,6 +13,8 @@ import type { Match, MatchEvent } from "../../src/types/competition";
 
 // biome-ignore lint/style/noVar: var required so jest.mock factory hoisting can close over it before module evaluation
 var mockScrollTo = jest.fn();
+// biome-ignore lint/style/noVar: var required so jest.mock factory can close over it
+var mockIsFavourite = "false";
 
 jest.mock("react-native-reanimated", () => {
   const ReactInFactory = require("react");
@@ -55,7 +57,14 @@ jest.mock("react-native-reanimated", () => {
 });
 
 jest.mock("expo-router", () => ({
-  useLocalSearchParams: () => ({ id: "WC" }),
+  useLocalSearchParams: () => ({ id: "WC", isFavourite: mockIsFavourite }),
+}));
+
+jest.mock("../../src/components/FlatMatchSchedule", () => ({
+  FlatMatchSchedule: () => {
+    const { View } = require("react-native");
+    return <View testID="flat-top-bar" />;
+  },
 }));
 
 jest.mock("../../src/services/footballDataService", () => {
@@ -571,5 +580,33 @@ describe("Now button scroll behaviour", () => {
       (call) => call[0]?.animated === true && call[0]?.y === 0,
     );
     expect(animatedZeroCalls.length).toBe(0);
+  });
+});
+
+describe("isFavourite routing", () => {
+  beforeEach(() => {
+    mockIsFavourite = "false";
+    (getMatches as jest.Mock).mockResolvedValue([MATCH_A]);
+    (getTeamCrests as jest.Mock).mockRejectedValue(new Error("no crests"));
+  });
+
+  afterEach(() => {
+    mockIsFavourite = "false";
+  });
+
+  it("renders carousel top-bar when isFavourite is false", async () => {
+    mockIsFavourite = "false";
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("top-bar"));
+    expect(screen.getByTestId("top-bar")).toBeTruthy();
+    expect(screen.queryByTestId("flat-top-bar")).toBeNull();
+  });
+
+  it("renders FlatMatchSchedule when isFavourite is true", async () => {
+    mockIsFavourite = "true";
+    render(<MatchScheduleScreen />);
+    await waitFor(() => screen.getByTestId("flat-top-bar"));
+    expect(screen.getByTestId("flat-top-bar")).toBeTruthy();
+    expect(screen.queryByTestId("top-bar")).toBeNull();
   });
 });

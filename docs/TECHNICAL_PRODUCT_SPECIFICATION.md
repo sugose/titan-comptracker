@@ -19,6 +19,7 @@ app/
 src/
   components/
     CompetitionTile.tsx   # Tappable tile for a single competition
+    FlatMatchSchedule.tsx # Flat (non-carousel) match list for favourited competitions
     GameCard.tsx          # Single match card component (legacy, superceded by carousel cards)
     GameCardCompact.tsx   # Out-of-focus carousel card
     GameCardFocused.tsx   # In-focus carousel card
@@ -39,7 +40,7 @@ src/
 1. App opens → CompetitionSelectScreen calls `competitionService.getCompetitions()` on mount; also loads favourites and filter state from AsyncStorage
 2. Service fetches from `GET /v4/competitions`, filters to 12 free tier codes, sorts by area then name
 3. Screen renders a top bar with Favourites filter button, then a `ScrollView` of `CompetitionTile` components; favourited competitions are sorted to the top; when filter is active only favourited competitions are shown
-4. User taps a tile → navigates to `MatchScheduleScreen` with the competition code
+4. User taps a tile → navigates to `MatchScheduleScreen` with the competition code and `isFavourite` query param (`"true"` or `"false"`)
 5. MatchScheduleScreen calls `footballDataService.getMatches(competitionCode)` on mount
 6. Response is typed, validated, and returned as `Match[]`
 7. Screen renders a vertical carousel of `GameCardFocused` / `GameCardCompact` components, sorted by UTC kick-off time ascending, with smart initial focus (ONGOING → UPCOMING → index 0)
@@ -58,6 +59,28 @@ src/
 - **Filter active**: list shows only favourited competitions; when no favourites are stored the list is empty (no message shown)
 - **Star icon** on each `CompetitionTile` (`testID="favourite-star-{code}"`): outline `☆` (#888888) when not favourited; filled `★` (#f0a500) when favourited; tapping toggles state and re-sorts immediately; tapping the star does not navigate to the match schedule
 - **Persistence**: favourite codes stored as JSON array under `AsyncStorage` key `"favouriteCompetitions"`; filter state stored as `"true"` or `"false"` string under key `"favouritesFilterActive"`; both loaded on mount; errors default to empty favourites and filter inactive
+
+### `FlatMatchSchedule` component (PBI-3.2)
+
+Used when `isFavourite === "true"` is passed to the match schedule screen. Renders a plain (non-Reanimated) scrollable list of matches.
+
+Props:
+```typescript
+interface FlatMatchScheduleProps {
+  matches: Match[];
+  crests: Record<string, string>;
+  matchEvents: Record<number, MatchEvent[] | null>;
+  deviceTimeZone: string;
+}
+```
+
+- All cards rendered as `GameCardFocused` — no compact/focused distinction
+- Plain React Native `ScrollView` — no Reanimated, no `CardWrapper`, no focus state
+- Fixed `CARD_HEIGHT = 220` for `scrollTo` offset calculation
+- `testID="flat-top-bar"` on the top bar `View`
+- `testID="flat-now-button"` on the Now `TouchableOpacity`
+- Pressing Now calls `smartFocusIndex(matches)` and scrolls to `nowIndex * CARD_HEIGHT + TOP_PADDING`
+- Exports `smartFocusIndex` for testability
 
 ### `teamService.getTeamCrests(competitionCode: string): Promise<Record<string, string>>`
 

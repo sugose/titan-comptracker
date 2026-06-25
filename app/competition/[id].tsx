@@ -17,6 +17,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
+import { FlatMatchSchedule } from "../../src/components/FlatMatchSchedule";
 import { GameCardCompact } from "../../src/components/GameCardCompact";
 import { GameCardFocused } from "../../src/components/GameCardFocused";
 import {
@@ -98,7 +99,7 @@ function CardWrapper({ scrollY, screenH, onMeasured, children }: CardWrapperProp
 }
 
 export default function MatchScheduleScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, isFavourite } = useLocalSearchParams<{ id: string; isFavourite?: string }>();
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [currentFocus, setCurrentFocus] = useState(0);
   const [matchEvents, setMatchEvents] = useState<Record<number, MatchEvent[] | null>>({});
@@ -237,6 +238,17 @@ export default function MatchScheduleScreen() {
       <View style={styles.centered}>
         <Text style={styles.errorText}>{state.message}</Text>
       </View>
+    );
+  }
+
+  if (isFavourite === "true") {
+    return (
+      <FlatMatchSchedule
+        matches={state.matches}
+        crests={crests}
+        matchEvents={matchEvents}
+        deviceTimeZone={deviceTimeZone}
+      />
     );
   }
 
