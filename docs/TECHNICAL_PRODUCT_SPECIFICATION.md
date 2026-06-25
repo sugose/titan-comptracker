@@ -36,9 +36,9 @@ src/
 
 ### Data Flow
 
-1. App opens → CompetitionSelectScreen calls `competitionService.getCompetitions()` on mount
+1. App opens → CompetitionSelectScreen calls `competitionService.getCompetitions()` on mount; also loads favourites and filter state from AsyncStorage
 2. Service fetches from `GET /v4/competitions`, filters to 12 free tier codes, sorts by area then name
-3. Screen renders a `ScrollView` of `CompetitionTile` components
+3. Screen renders a top bar with Favourites filter button, then a `ScrollView` of `CompetitionTile` components; favourited competitions are sorted to the top; when filter is active only favourited competitions are shown
 4. User taps a tile → navigates to `MatchScheduleScreen` with the competition code
 5. MatchScheduleScreen calls `footballDataService.getMatches(competitionCode)` on mount
 6. Response is typed, validated, and returned as `Match[]`
@@ -49,6 +49,15 @@ src/
 ---
 
 ## Component Specs
+
+### `CompetitionSelectScreen` — favourites feature
+
+- **Top bar**: always visible when competitions are loaded; contains a single "Favourites" filter button (`testID="favourites-bar"`)
+- **Filter button** (`testID="favourites-filter-button"`): outlined (border, transparent background) when inactive; filled (`#f0a500` background, dark text) when active
+- **Sort order**: favourited competitions float to the top of the list; within each group the existing area-then-name sort from `competitionService` is preserved
+- **Filter active**: list shows only favourited competitions; when no favourites are stored the list is empty (no message shown)
+- **Star icon** on each `CompetitionTile` (`testID="favourite-star-{code}"`): outline `☆` (#888888) when not favourited; filled `★` (#f0a500) when favourited; tapping toggles state and re-sorts immediately; tapping the star does not navigate to the match schedule
+- **Persistence**: favourite codes stored as JSON array under `AsyncStorage` key `"favouriteCompetitions"`; filter state stored as `"true"` or `"false"` string under key `"favouritesFilterActive"`; both loaded on mount; errors default to empty favourites and filter inactive
 
 ### `teamService.getTeamCrests(competitionCode: string): Promise<Record<string, string>>`
 
