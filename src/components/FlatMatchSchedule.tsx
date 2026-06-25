@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: "70%",
     height: "80%",
-    backgroundColor: "rgba(26, 26, 46, 0.85)",
+    backgroundColor: "rgba(26, 26, 46, 0.75)",
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#333355",
