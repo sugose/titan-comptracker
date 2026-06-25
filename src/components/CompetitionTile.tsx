@@ -5,6 +5,8 @@ import type { Competition } from "../types/competition";
 interface CompetitionTileProps {
   competition: Competition;
   onPress: () => void;
+  isFavourite?: boolean;
+  onToggleFavourite?: () => void;
 }
 
 function seasonYears(startDate: string, endDate: string): string {
@@ -39,25 +41,47 @@ function seasonStatus(startDate: string, currentMatchday: number | null): string
   return "";
 }
 
-export function CompetitionTile({ competition, onPress }: CompetitionTileProps) {
+export function CompetitionTile({
+  competition,
+  onPress,
+  isFavourite = false,
+  onToggleFavourite,
+}: CompetitionTileProps) {
   return (
     <TouchableOpacity style={styles.tile} onPress={onPress} accessibilityRole="button">
-      <Text style={styles.name}>{competition.name}</Text>
-      <Text style={styles.area}>{competition.area}</Text>
-      {competition.currentSeason && (
-        <View>
-          <Text style={styles.season}>
-            {seasonYears(competition.currentSeason.startDate, competition.currentSeason.endDate)}
-          </Text>
-          {(() => {
-            const status = seasonStatus(
-              competition.currentSeason.startDate,
-              competition.currentSeason.currentMatchday,
-            );
-            return status ? <Text style={styles.matchday}>{status}</Text> : null;
-          })()}
+      <View style={styles.row}>
+        <View style={styles.tileContent}>
+          <Text style={styles.name}>{competition.name}</Text>
+          <Text style={styles.area}>{competition.area}</Text>
+          {competition.currentSeason && (
+            <View>
+              <Text style={styles.season}>
+                {seasonYears(
+                  competition.currentSeason.startDate,
+                  competition.currentSeason.endDate,
+                )}
+              </Text>
+              {(() => {
+                const status = seasonStatus(
+                  competition.currentSeason.startDate,
+                  competition.currentSeason.currentMatchday,
+                );
+                return status ? <Text style={styles.matchday}>{status}</Text> : null;
+              })()}
+            </View>
+          )}
         </View>
-      )}
+        <TouchableOpacity
+          testID={`favourite-star-${competition.code}`}
+          style={styles.starButton}
+          onPress={onToggleFavourite}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={isFavourite ? styles.starFilled : styles.starOutline}>
+            {isFavourite ? "★" : "☆"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -71,6 +95,24 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     borderWidth: 1,
     borderColor: "#333355",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tileContent: {
+    flex: 1,
+  },
+  starButton: {
+    paddingLeft: 12,
+  },
+  starFilled: {
+    fontSize: 22,
+    color: "#f0a500",
+  },
+  starOutline: {
+    fontSize: 22,
+    color: "#888888",
   },
   name: {
     color: "#ffffff",

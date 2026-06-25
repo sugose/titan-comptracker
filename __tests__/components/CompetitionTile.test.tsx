@@ -148,4 +148,44 @@ describe("CompetitionTile", () => {
     expect(screen.queryByText(/Season starts/)).toBeNull();
     expect(screen.queryByText(/TODAY/)).toBeNull();
   });
+
+  // Star / favourite tests
+
+  it("renders an outline star by default (isFavourite not provided)", () => {
+    render(<CompetitionTile competition={COMPETITION} onPress={jest.fn()} />);
+    expect(screen.getByTestId("favourite-star-WC")).toBeTruthy();
+    expect(screen.getByText("☆")).toBeTruthy();
+  });
+
+  it("renders a filled star when isFavourite is true", () => {
+    render(<CompetitionTile competition={COMPETITION} onPress={jest.fn()} isFavourite={true} />);
+    expect(screen.getByText("★")).toBeTruthy();
+  });
+
+  it("renders an outline star when isFavourite is false", () => {
+    render(<CompetitionTile competition={COMPETITION} onPress={jest.fn()} isFavourite={false} />);
+    expect(screen.getByText("☆")).toBeTruthy();
+  });
+
+  it("calls onToggleFavourite when the star is pressed", () => {
+    const onToggle = jest.fn();
+    render(
+      <CompetitionTile
+        competition={COMPETITION}
+        onPress={jest.fn()}
+        onToggleFavourite={onToggle}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("favourite-star-WC"));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onPress when the star is pressed", () => {
+    const onPress = jest.fn();
+    render(
+      <CompetitionTile competition={COMPETITION} onPress={onPress} onToggleFavourite={jest.fn()} />,
+    );
+    fireEvent.press(screen.getByTestId("favourite-star-WC"));
+    expect(onPress).not.toHaveBeenCalled();
+  });
 });
